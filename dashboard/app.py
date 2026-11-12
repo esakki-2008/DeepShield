@@ -58,7 +58,28 @@ html, body, [class*="css"] { font-family:'Inter',sans-serif; }
 [data-testid="stHeader"] { background:rgba(5,15,29,.82); }
 [data-testid="stSidebar"] { background:linear-gradient(180deg,#08172b 0%,#061020 100%); border-right:1px solid #12385d; }
 [data-testid="stSidebar"] * { color:var(--text); }
-.block-container { padding-top:1.25rem; padding-bottom:2rem; max-width:1800px; }
+/* Force Streamlit's main canvas to use the full browser width */
+[data-testid="stMainBlockContainer"],
+.stMainBlockContainer,
+.block-container {
+  width: 100% !important;
+  max-width: 100% !important;
+  padding-left: 2rem !important;
+  padding-right: 2rem !important;
+  padding-top: 1.25rem !important;
+  padding-bottom: 2rem !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  box-sizing: border-box !important;
+}
+@media (max-width: 900px) {
+  [data-testid="stMainBlockContainer"],
+  .stMainBlockContainer,
+  .block-container {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+}
 h1,h2,h3 { color:#f3f8ff !important; letter-spacing:-.03em; font-weight:800 !important; }
 [data-testid="stMetric"] { background:linear-gradient(145deg,rgba(13,39,68,.98),rgba(8,25,46,.98)); border:1px solid #18558a; border-radius:15px; padding:15px 17px; box-shadow:0 8px 24px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.04); min-height:112px; }
 [data-testid="stMetricLabel"] { color:#a9c3df !important; font-weight:600; }
