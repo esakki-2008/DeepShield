@@ -861,17 +861,31 @@ if dashboard_mode == "Live SOC Monitoring":
             table = recent.head(12).copy()
             if "timestamp" in table.columns:
                 table["Time"] = table["timestamp"].dt.strftime("%H:%M:%S")
+            # Format probability before renaming source columns. This avoids
+            # looking up "attack_probability" after it has become "Attack Prob.".
+            if "attack_probability" in table.columns:
+                table["Attack Prob."] = table["attack_probability"].map(
+                    lambda value: f"{float(value):.4f}" if pd.notna(value) else "—"
+                )
             table = table.rename(columns={
-                "source_ip":"Source IP", "destination_ip":"Destination IP",
-                "destination_port":"Port", "protocol":"Protocol",
-                "total_packets":"Packets", "attack_probability":"Attack Prob.",
+                "source_ip":"Source IP",
+                "destination_ip":"Destination IP",
+                "destination_port":"Port",
+                "protocol":"Protocol",
+                "total_packets":"Packets",
                 "classification":"Prediction"
             })
-            if "attack_probability" in recent.columns:
-                table["Attack Prob."] = table["attack_probability"].map(lambda x: f"{x:.4f}")
-            show_cols = [x for x in ["Time","source_ip","destination_ip","Port","Protocol","Packets","Attack Prob.","Prediction"] if x in table.columns]
-            table = table.rename(columns={"source_ip":"Source IP","destination_ip":"Destination IP"})
-            st.dataframe(table[show_cols], use_container_width=True, hide_index=True, height=285)
+            show_cols = [
+                "Time", "Source IP", "Destination IP", "Port",
+                "Protocol", "Packets", "Attack Prob.", "Prediction"
+            ]
+            show_cols = [column for column in show_cols if column in table.columns]
+            st.dataframe(
+                table[show_cols],
+                use_container_width=True,
+                hide_index=True,
+                height=285
+            )
 
         with right:
             st.markdown('<div class="ds-section-title">♟ &nbsp; Recent Alerts & Incidents</div>', unsafe_allow_html=True)
