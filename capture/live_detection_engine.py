@@ -17,6 +17,7 @@ if str(CAPTURE_DIR) not in sys.path:
 from flow_generator import FlowGenerator
 from live_predictor import LivePredictor
 from alert_manager import AlertManager
+from event_store import EventStore
 
 
 # Configuration
@@ -35,10 +36,11 @@ class LiveDetectionEngine:
         self.flow_generator = FlowGenerator()
         self.predictor = LivePredictor()
         self.alert_manager = AlertManager()
+        self.event_store = EventStore()
 
         self.last_prediction_count = defaultdict(int)
 
-        # Avoid saving duplicate alerts for the same flow.
+        # Avoid duplicate alerts for the same flow.
         self.alerted_flow_ids = set()
 
         # Session statistics
@@ -98,7 +100,7 @@ class LiveDetectionEngine:
                         prediction_stage="PROVISIONAL"
                     )
 
-            # Process any flows expired by packet-based cleanup.
+            # Process flows expired by packet-based cleanup.
             self._process_expired_flows()
 
         except Exception as error:
@@ -120,8 +122,7 @@ class LiveDetectionEngine:
 
             self.total_attacks += 1
 
-            # Do not create a second alert for an already
-            # alerted flow during its current lifetime.
+            # Avoid duplicate alerts during this flow's lifetime.
             if flow_id not in self.alerted_flow_ids:
 
                 alert = self.alert_manager.create_alert(result)
@@ -134,8 +135,19 @@ class LiveDetectionEngine:
 
             self.total_benign += 1
 
+        # Attach prediction stage.
         result["prediction_stage"] = prediction_stage
 
+        # Save prediction for the SOC dashboard.
+        try:
+
+            self.event_store.append_prediction(result)
+
+        except Exception as error:
+
+            print("\nEvent storage error:", error)
+
+        # Display prediction in the terminal.
         self.display_result(result)
 
     def _process_expired_flows(self):
@@ -222,6 +234,11 @@ class LiveDetectionEngine:
             INTERFACE_INDEX
         )
 
+        if interface is None:
+            raise RuntimeError(
+                f"Network interface index {INTERFACE_INDEX} not found."
+            )
+
         print("\n" + "=" * 60)
         print("        DEEPSHIELD REAL-TIME DETECTION ENGINE")
         print("=" * 60)
@@ -230,17 +247,27 @@ class LiveDetectionEngine:
         print("Minimum Packets      :", MIN_PACKETS_FOR_PREDICTION)
         print("Prediction Interval  :", PREDICT_EVERY_NEW_PACKETS)
 
-        print("TCP Idle Timeout     :", self.flow_generator.TCP_IDLE_TIMEOUT)
-        print("UDP Idle Timeout     :", self.flow_generator.UDP_IDLE_TIMEOUT)
-        print("Maximum Flow Lifetime:", self.flow_generator.MAX_FLOW_LIFETIME)
+        print(
+            "TCP Idle Timeout     :",
+            self.flow_generator.TCP_IDLE_TIMEOUT
+        )
+
+        print(
+            "UDP Idle Timeout     :",
+            self.flow_generator.UDP_IDLE_TIMEOUT
+        )
+
+        print(
+            "Maximum Flow Lifetime:",
+            self.flow_generator.MAX_FLOW_LIFETIME
+        )
 
         print("\nMonitoring authorized network traffic...")
         print("Press CTRL + C to stop monitoring.")
 
         print("=" * 60)
 
-        # Repeated short capture windows allow cleanup to run
-        # even when no packets arrive.
+        # Short capture windows allow cleanup without new packets.
         while True:
 
             sniff(
@@ -251,7 +278,7 @@ class LiveDetectionEngine:
                 timeout=1
             )
 
-            # Check for idle flows after every capture window.
+            # Check for idle flows after each capture window.
             self.flow_generator.expire_flows(time.time())
 
             self._process_expired_flows()
@@ -270,7 +297,6 @@ class LiveDetectionEngine:
         print("Expired Flows          :", self.total_expired_flows)
 
         print("=" * 60)
-
         print("\nLive monitoring session ended.")
 
 
@@ -285,7 +311,6 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
 
         print("\n\nStopping DeepShield monitoring...")
-
         engine.show_summary()
 
     except PermissionError:

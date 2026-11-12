@@ -3,7 +3,10 @@ import joblib
 import pandas as pd
 from pathlib import Path
 
-from feature_extractor import extract_features
+try:
+    from .feature_extractor import extract_features
+except ImportError:
+    from feature_extractor import extract_features
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent

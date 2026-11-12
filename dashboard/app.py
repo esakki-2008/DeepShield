@@ -1,9 +1,11 @@
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 import requests
+import json
+import os
 
+from pathlib import Path
 from io import BytesIO
 from datetime import datetime
 
@@ -33,6 +35,14 @@ st.set_page_config(
 )
 
 API_URL = "http://127.0.0.1:8000"
+
+BASE_DIR = Path(__file__).resolve().parent
+LIVE_EVENTS_FILE = (
+    BASE_DIR.parent
+    / "reports"
+    / "live_events"
+    / "predictions.jsonl"
+)
 
 
 # =====================================================
@@ -65,6 +75,117 @@ section[data-testid="stSidebar"] {
 </style>
 """, unsafe_allow_html=True)
 
+
+# =====================================================
+# LIVE DATA FUNCTIONS
+# =====================================================
+
+def load_live_events():
+
+    if not LIVE_EVENTS_FILE.exists():
+        return pd.DataFrame()
+
+    events = []
+
+    try:
+        with open(
+            LIVE_EVENTS_FILE,
+            "r",
+            encoding="utf-8"
+        ) as file:
+
+            for line in file:
+
+                line = line.strip()
+
+                if not line:
+                    continue
+
+                try:
+                    events.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
+
+    except OSError:
+        return pd.DataFrame()
+
+    if not events:
+        return pd.DataFrame()
+
+    df = pd.DataFrame(events)
+
+    if "timestamp" in df.columns:
+        df["timestamp"] = pd.to_datetime(
+            df["timestamp"],
+            errors="coerce"
+        )
+
+    if "attack_probability" in df.columns:
+        df["attack_probability"] = pd.to_numeric(
+            df["attack_probability"],
+            errors="coerce"
+        ).fillna(0).clip(0, 1)
+
+    if "total_packets" in df.columns:
+        df["total_packets"] = pd.to_numeric(
+            df["total_packets"],
+            errors="coerce"
+        ).fillna(0)
+
+    if "prediction" not in df.columns:
+        df["prediction"] = "UNKNOWN"
+
+    df["prediction"] = (
+        df["prediction"]
+        .astype(str)
+        .str.upper()
+    )
+
+    return df
+
+
+
+def get_live_statistics(df):
+
+    if df.empty:
+        return {
+            "total_events": 0,
+            "benign_events": 0,
+            "attack_events": 0,
+            "attack_percentage": 0.0,
+            "average_attack_probability": 0.0
+        }
+
+    total = len(df)
+
+    # Read the correct classification column
+    classification = (
+        df["classification"]
+        .astype(str)
+        .str.strip()
+        .str.upper()
+    )
+
+    benign = int((classification == "BENIGN").sum())
+    attacks = int((classification == "ATTACK").sum())
+
+    attack_percentage = (
+        attacks / total * 100 if total else 0
+    )
+
+    average_probability = (
+        df["attack_probability"].mean()
+        if "attack_probability" in df.columns
+        else 0.0
+    )
+
+    return {
+        "total_events": total,
+        "benign_events": benign,
+        "attack_events": attacks,
+        "attack_percentage": attack_percentage,
+        "average_attack_probability": average_probability
+    }
 
 # =====================================================
 # PDF REPORT GENERATOR
@@ -125,10 +246,6 @@ def generate_pdf_report(result, predictions_df):
     attacks = int(summary.get("attack_records", 0))
     anomalies = int(summary.get("anomalous_records", 0))
 
-    # -------------------------------------------------
-    # TITLE
-    # -------------------------------------------------
-
     story.append(
         Paragraph("DEEPSHIELD", styles["ReportTitle"])
     )
@@ -164,21 +281,13 @@ def generate_pdf_report(result, predictions_df):
         Paragraph(executive_text, styles["Normal"])
     )
 
-    # -------------------------------------------------
-    # TRAFFIC SUMMARY
-    # -------------------------------------------------
-
     story.append(
         Paragraph("2. Traffic Analysis", styles["SectionHeading"])
     )
 
     traffic_data = [
         ["Metric", "Records", "Percentage"],
-        [
-            "Total Records",
-            f"{total:,}",
-            "100%"
-        ],
+        ["Total Records", f"{total:,}", "100%"],
         [
             "Benign Traffic",
             f"{benign:,}",
@@ -214,10 +323,6 @@ def generate_pdf_report(result, predictions_df):
     )
 
     story.append(traffic_table)
-
-    # -------------------------------------------------
-    # ATTACK FAMILY BREAKDOWN
-    # -------------------------------------------------
 
     story.append(
         Paragraph("3. Attack Family Analysis", styles["SectionHeading"])
@@ -266,10 +371,6 @@ def generate_pdf_report(result, predictions_df):
             Paragraph("No attack families were reported.", styles["Normal"])
         )
 
-    # -------------------------------------------------
-    # SEVERITY BREAKDOWN
-    # -------------------------------------------------
-
     story.append(
         Paragraph("4. Threat Severity Assessment", styles["SectionHeading"])
     )
@@ -309,10 +410,6 @@ def generate_pdf_report(result, predictions_df):
 
     story.append(severity_table)
 
-    # -------------------------------------------------
-    # TOP PRIORITY THREATS
-    # -------------------------------------------------
-
     story.append(
         Paragraph("5. Highest-Risk Traffic Records", styles["SectionHeading"])
     )
@@ -326,15 +423,13 @@ def generate_pdf_report(result, predictions_df):
 
     if not priority_df.empty:
 
-        threat_data = [
-            [
-                "Row",
-                "Prediction",
-                "Attack Family",
-                "Risk Score",
-                "Severity"
-            ]
-        ]
+        threat_data = [[
+            "Row",
+            "Prediction",
+            "Attack Family",
+            "Risk Score",
+            "Severity"
+        ]]
 
         for _, row in priority_df.iterrows():
 
@@ -375,13 +470,11 @@ def generate_pdf_report(result, predictions_df):
 
     else:
         story.append(
-            Paragraph("No high or critical risk records were identified.",
-                      styles["Normal"])
+            Paragraph(
+                "No high or critical risk records were identified.",
+                styles["Normal"]
+            )
         )
-
-    # -------------------------------------------------
-    # METHODOLOGY AND LIMITATIONS
-    # -------------------------------------------------
 
     story.append(
         Paragraph("6. Methodology & Limitations", styles["SectionHeading"])
@@ -422,10 +515,6 @@ def generate_pdf_report(result, predictions_df):
         )
     )
 
-    # -------------------------------------------------
-    # FOOTER
-    # -------------------------------------------------
-
     def add_footer(canvas, document):
 
         canvas.saveState()
@@ -457,7 +546,6 @@ def generate_pdf_report(result, predictions_df):
 
     return buffer.getvalue()
 
-
 # =====================================================
 # HEADER
 # =====================================================
@@ -470,7 +558,7 @@ st.subheader(
 
 st.caption(
     "AI-powered network traffic classification, "
-    "attack identification and anomaly detection."
+    "attack identification and real-time anomaly monitoring."
 )
 
 st.divider()
@@ -481,6 +569,19 @@ st.divider()
 # =====================================================
 
 st.sidebar.title("⚙️ Control Panel")
+
+dashboard_mode = st.sidebar.radio(
+    "Select Monitoring Mode",
+    [
+        "Live SOC Monitoring",
+        "CSV Traffic Analysis"
+    ],
+    index=0
+)
+
+st.sidebar.divider()
+
+st.sidebar.markdown("### API Connection")
 
 try:
 
@@ -498,180 +599,118 @@ except requests.exceptions.RequestException:
 
     st.sidebar.error("Detection API: Disconnected")
 
-st.sidebar.markdown("### Supported Input")
-st.sidebar.write("CIC-IDS2017 network-flow CSV")
-st.sidebar.write("Maximum upload: 50,000 rows")
-
 st.sidebar.divider()
 
-st.sidebar.caption("DeepShield AI Security Platform")
-
-
-# =====================================================
-# FILE UPLOAD
-# =====================================================
-
-st.header("📂 Network Traffic Analysis")
-
-uploaded_file = st.file_uploader(
-    "Upload your network traffic CSV",
-    type=["csv"]
+st.sidebar.caption(
+    "DeepShield AI Security Platform"
 )
 
-if uploaded_file is not None:
-
-    st.info(f"Selected file: {uploaded_file.name}")
-
-    if st.button(
-        "🚀 Analyze Network Traffic",
-        type="primary"
-    ):
-
-        try:
-
-            with st.spinner(
-                "Analyzing network traffic with AI models..."
-            ):
-
-                response = requests.post(
-                    f"{API_URL}/predict",
-                    files={
-                        "file": (
-                            uploaded_file.name,
-                            uploaded_file.getvalue(),
-                            "text/csv"
-                        )
-                    },
-                    timeout=300
-                )
-
-                if response.status_code != 200:
-
-                    st.error(
-                        f"API Error {response.status_code}: "
-                        f"{response.text}"
-                    )
-
-                else:
-
-                    st.session_state["analysis_result"] = (
-                        response.json()
-                    )
-
-                    st.session_state["analysis_filename"] = (
-                        uploaded_file.name
-                    )
-
-                    st.success(
-                        "Network traffic analysis completed!"
-                    )
-
-        except requests.exceptions.ConnectionError:
-
-            st.error(
-                "Cannot connect to DeepShield API. "
-                "Start FastAPI in another terminal."
-            )
-
-        except requests.exceptions.RequestException as error:
-
-            st.error(f"Request failed: {error}")
-
-        except ValueError:
-
-            st.error("The API returned an invalid JSON response.")
-
 
 # =====================================================
-# RESULTS
+# LIVE SOC MONITORING
 # =====================================================
 
-if "analysis_result" in st.session_state:
+if dashboard_mode == "Live SOC Monitoring":
 
-    result = st.session_state["analysis_result"]
+    st.header("🖥️ Live Security Operations Center")
 
-    summary = result["summary"]
-
-    total = int(result["total_records"])
-    benign = int(summary["benign_records"])
-    attacks = int(summary["attack_records"])
-    anomalies = int(summary["anomalous_records"])
-
-    predictions_df = pd.DataFrame(
-        result["predictions"]
+    st.caption(
+        "Real-time network-flow predictions from your "
+        "DeepShield packet capture engine."
     )
 
-    if predictions_df.empty:
+    st.info(
+        "Make sure capture/live_detection_engine.py "
+        "is running in a separate terminal."
+    )
 
-        st.warning("No prediction records were returned.")
-        st.stop()
+    @st.fragment(run_every="2s")
+    def live_soc_dashboard():
 
-    # =================================================
-    # TRAFFIC OVERVIEW
-    # =================================================
+        df = load_live_events()
 
-    st.divider()
-    st.header("📊 Threat Analysis Overview")
+        if df.empty:
 
-    col1, col2, col3, col4 = st.columns(4)
-
-    col1.metric("Total Records", f"{total:,}")
-    col2.metric("Benign Traffic", f"{benign:,}")
-    col3.metric("Detected Attacks", f"{attacks:,}")
-    col4.metric("Anomaly Flags", f"{anomalies:,}")
-
-    # =================================================
-    # TRAFFIC ANALYTICS
-    # =================================================
-
-    st.divider()
-    st.header("📈 Traffic Analytics")
-
-    left, right = st.columns(2)
-
-    traffic_df = pd.DataFrame({
-        "Traffic Type": ["Benign", "Attack"],
-        "Records": [benign, attacks]
-    })
-
-    with left:
-
-        st.subheader("Traffic Distribution")
-
-        fig = px.pie(
-            traffic_df,
-            names="Traffic Type",
-            values="Records",
-            hole=0.55,
-            title="Benign vs Attack Traffic"
-        )
-
-        st.plotly_chart(
-            fig,
-            use_container_width=True
-        )
-
-    with right:
-
-        st.subheader("Attack Family Distribution")
-
-        family_data = summary.get(
-            "attack_families",
-            {}
-        )
-
-        if family_data:
-
-            family_df = pd.DataFrame(
-                list(family_data.items()),
-                columns=["Attack Family", "Records"]
+            st.warning(
+                "No live prediction events found yet."
             )
 
-            fig = px.bar(
-                family_df,
-                x="Attack Family",
-                y="Records",
-                title="Detected Attack Families"
+            st.markdown(
+                """
+                ### Start Live Monitoring
+
+                Open another PowerShell terminal and run:
+
+                ```powershell
+                python capture\\live_detection_engine.py
+                ```
+
+                Once network traffic is captured, "
+                "predictions will appear here automatically.
+                """
+            )
+
+            return
+
+        stats = get_live_statistics(df)
+
+        # ---------------------------------------------
+        # SUMMARY METRICS
+        # ---------------------------------------------
+
+        st.subheader("📊 Live Traffic Overview")
+
+        col1, col2, col3, col4 = st.columns(4)
+
+        col1.metric(
+            "Total Events",
+            f"{stats['total_events']:,}"
+        )
+
+        col2.metric(
+            "Benign Events",
+            f"{stats['benign_events']:,}"
+        )
+
+        col3.metric(
+            "Attack Events",
+            f"{stats['attack_events']:,}"
+        )
+
+        col4.metric(
+            "Attack Percentage",
+            f"{stats['attack_percentage']:.2f}%"
+        )
+
+        st.divider()
+
+        # ---------------------------------------------
+        # TRAFFIC DISTRIBUTION
+        # ---------------------------------------------
+
+        st.subheader("📈 Traffic Distribution")
+
+        left, right = st.columns(2)
+
+        traffic_df = pd.DataFrame({
+            "Traffic Type": [
+                "BENIGN",
+                "ATTACK"
+            ],
+            "Events": [
+                stats["benign_events"],
+                stats["attack_events"]
+            ]
+        })
+
+        with left:
+
+            fig = px.pie(
+                traffic_df,
+                names="Traffic Type",
+                values="Events",
+                hole=0.55,
+                title="Benign vs Attack Predictions"
             )
 
             st.plotly_chart(
@@ -679,278 +718,716 @@ if "analysis_result" in st.session_state:
                 use_container_width=True
             )
 
+        with right:
+
+            st.metric(
+                "Average Attack Probability",
+                f"{stats['average_attack_probability'] * 100:.2f}%"
+            )
+
+            st.progress(
+                float(
+                    stats["average_attack_probability"]
+                )
+            )
+
+            st.caption(
+                "Average model attack probability across "
+                "recorded prediction events."
+            )
+
+        st.divider()
+
+        # ---------------------------------------------
+        # ATTACK PROBABILITY TIMELINE
+        # ---------------------------------------------
+
+        st.subheader("📉 Attack Probability Timeline")
+
+        if (
+            "timestamp" in df.columns
+            and "attack_probability" in df.columns
+        ):
+
+            timeline_df = df.dropna(
+                subset=["timestamp"]
+            ).sort_values("timestamp")
+
+            if not timeline_df.empty:
+
+                fig = px.line(
+                    timeline_df,
+                    x="timestamp",
+                    y="attack_probability",
+                    color="prediction",
+                    title="Live Attack Probability",
+                    labels={
+                        "timestamp": "Time",
+                        "attack_probability": "Attack Probability",
+                        "prediction": "Prediction"
+                    }
+                )
+
+                fig.update_yaxes(
+                    range=[0, 1]
+                )
+
+                st.plotly_chart(
+                    fig,
+                    use_container_width=True
+                )
+
+            else:
+
+                st.info(
+                    "No valid timestamps available."
+                )
+
         else:
 
-            st.info("No attack families detected.")
+            st.info(
+                "Probability timeline data is unavailable."
+            )
 
-    # =================================================
-    # ANOMALY DETECTION
-    # =================================================
+        st.divider()
 
-    st.divider()
-    st.header("🔍 Anomaly Detection")
+        # ---------------------------------------------
+        # ATTACK EVENTS
+        # ---------------------------------------------
 
-    anomaly_percentage = (
-        anomalies / total * 100 if total else 0
-    )
+        st.subheader("🚨 Detected Attack Events")
 
-    st.metric(
-        "Anomalous Traffic Percentage",
-        f"{anomaly_percentage:.2f}%"
-    )
+        attack_df = df[
+            df["prediction"] == "ATTACK"
+        ].copy()
 
-    st.progress(
-        min(anomaly_percentage / 100, 1.0)
-    )
+        if not attack_df.empty:
 
-    # =================================================
-    # THREAT INTELLIGENCE
-    # =================================================
-
-    st.divider()
-    st.header("🚨 Threat Intelligence & Risk Assessment")
-
-    required_columns = [
-        "row_number",
-        "prediction",
-        "attack_probability",
-        "anomaly_detected",
-        "attack_family"
-    ]
-
-    missing_columns = [
-        column for column in required_columns
-        if column not in predictions_df.columns
-    ]
-
-    if missing_columns:
-
-        st.error(
-            "API response is missing columns: "
-            + ", ".join(missing_columns)
-        )
-
-        st.stop()
-
-    predictions_df["attack_probability"] = pd.to_numeric(
-        predictions_df["attack_probability"],
-        errors="coerce"
-    ).fillna(0).clip(0, 1)
-
-    predictions_df["anomaly_detected"] = (
-        predictions_df["anomaly_detected"]
-        .fillna(False)
-        .astype(bool)
-    )
-
-    # Preliminary heuristic score
-    predictions_df["risk_score"] = (
-        predictions_df["attack_probability"] * 80
-        + predictions_df["anomaly_detected"].astype(int) * 20
-    ).clip(0, 100).round(2)
-
-    def get_severity(score):
-
-        if score >= 90:
-            return "CRITICAL"
-
-        elif score >= 70:
-            return "HIGH"
-
-        elif score >= 40:
-            return "MEDIUM"
-
-        return "LOW"
-
-    predictions_df["severity"] = (
-        predictions_df["risk_score"].apply(get_severity)
-    )
-
-    severity_counts = (
-        predictions_df["severity"]
-        .value_counts()
-        .reindex(
-            ["CRITICAL", "HIGH", "MEDIUM", "LOW"],
-            fill_value=0
-        )
-    )
-
-    st.subheader("Threat Severity Overview")
-
-    c1, c2, c3, c4 = st.columns(4)
-
-    c1.metric("🔴 Critical", int(severity_counts["CRITICAL"]))
-    c2.metric("🟠 High", int(severity_counts["HIGH"]))
-    c3.metric("🟡 Medium", int(severity_counts["MEDIUM"]))
-    c4.metric("🟢 Low", int(severity_counts["LOW"]))
-
-    severity_df = (
-        severity_counts
-        .rename_axis("Severity")
-        .reset_index(name="Records")
-    )
-
-    fig = px.bar(
-        severity_df,
-        x="Severity",
-        y="Records",
-        color="Severity",
-        title="Threat Severity Distribution",
-        category_orders={
-            "Severity": [
-                "CRITICAL",
-                "HIGH",
-                "MEDIUM",
-                "LOW"
-            ]
-        }
-    )
-
-    st.plotly_chart(
-        fig,
-        use_container_width=True
-    )
-
-    # =================================================
-    # PRIORITY ALERTS
-    # =================================================
-
-    st.subheader("⚠️ Priority Threat Alerts")
-
-    priority_df = predictions_df[
-        predictions_df["severity"].isin(
-            ["CRITICAL", "HIGH"]
-        )
-    ].sort_values(
-        "risk_score",
-        ascending=False
-    )
-
-    if not priority_df.empty:
-
-        st.dataframe(
-            priority_df[
-                [
-                    "row_number",
+            display_columns = [
+                column for column in [
+                    "timestamp",
                     "prediction",
                     "attack_probability",
-                    "attack_family",
-                    "anomaly_detected",
-                    "risk_score",
-                    "severity"
+                    "source_ip",
+                    "destination_ip",
+                    "destination_port",
+                    "protocol",
+                    "total_packets",
+                    "prediction_stage"
                 ]
-            ],
+                if column in attack_df.columns
+            ]
+
+            st.dataframe(
+                attack_df[display_columns].sort_values(
+                    "timestamp",
+                    ascending=False
+                ) if "timestamp" in display_columns
+                else attack_df[display_columns],
+                use_container_width=True,
+                hide_index=True
+            )
+
+        else:
+
+            st.success(
+                "No ATTACK predictions have been recorded."
+            )
+
+        st.divider()
+
+        # ---------------------------------------------
+        # RECENT NETWORK EVENTS
+        # ---------------------------------------------
+
+        st.subheader("🌐 Recent Network Predictions")
+
+        recent_df = df.tail(50).copy()
+
+        display_columns = [
+            column for column in [
+                "timestamp",
+                "prediction",
+                "attack_probability",
+                "source_ip",
+                "destination_ip",
+                "destination_port",
+                "protocol",
+                "total_packets",
+                "prediction_stage"
+            ]
+            if column in recent_df.columns
+        ]
+
+        st.dataframe(
+            recent_df[display_columns].sort_values(
+                "timestamp",
+                ascending=False
+            ) if "timestamp" in display_columns
+            else recent_df[display_columns],
             use_container_width=True,
             hide_index=True
         )
 
-    else:
+        # ---------------------------------------------
+        # LAST EVENT
+        # ---------------------------------------------
 
-        st.success("No high or critical risk records found.")
+        if (
+            "timestamp" in df.columns
+            and df["timestamp"].notna().any()
+        ):
 
-    # =================================================
-    # DETAILED PREDICTIONS
-    # =================================================
+            latest_time = df["timestamp"].max()
 
-    st.divider()
-    st.header("📋 Detailed Prediction Results")
-
-    st.dataframe(
-        predictions_df,
-        use_container_width=True,
-        hide_index=True
-    )
-
-    # =================================================
-    # AUTOMATED REPORT GENERATION
-    # =================================================
-
-    st.divider()
-    st.header("📑 Automated Security Reporting")
-
-    st.write(
-        "Generate a security report containing traffic statistics, "
-        "attack families, threat severity and priority alerts."
-    )
-
-    report_col1, report_col2 = st.columns(2)
-
-    with report_col1:
-
-        st.subheader("📄 PDF Security Report")
-
-        try:
-
-            pdf_data = generate_pdf_report(
-                result,
-                predictions_df
+            st.caption(
+                f"Last prediction event: {latest_time}"
             )
 
-            st.download_button(
-                label="⬇️ Download PDF Report",
-                data=pdf_data,
-                file_name="DeepShield_Security_Report.pdf",
-                mime="application/pdf",
+        st.caption(
+            "Note: These counts represent prediction events, "
+            "not necessarily unique network flows. A flow may "
+            "produce provisional and final predictions."
+        )
+
+    live_soc_dashboard()
+
+    st.divider()
+
+    st.caption(
+        "DeepShield | Live SOC Monitoring | "
+        "Network Intrusion Detection"
+    )
+
+    st.stop()
+
+# =====================================================
+# CSV TRAFFIC ANALYSIS
+# =====================================================
+
+elif dashboard_mode == "CSV Traffic Analysis":
+
+    st.header("📂 Network Traffic Analysis")
+
+    st.caption(
+        "Upload a CIC-IDS2017-compatible network-flow CSV "
+        "to analyze traffic using DeepShield AI models."
+    )
+
+    st.sidebar.markdown("### Supported Input")
+    st.sidebar.write("CIC-IDS2017 network-flow CSV")
+    st.sidebar.write("Maximum upload: 50,000 rows")
+
+    uploaded_file = st.file_uploader(
+        "Upload your network traffic CSV",
+        type=["csv"]
+    )
+
+    if uploaded_file is not None:
+
+        st.info(
+            f"Selected file: {uploaded_file.name}"
+        )
+
+        if st.button(
+            "🚀 Analyze Network Traffic",
+            type="primary"
+        ):
+
+            try:
+
+                with st.spinner(
+                    "Analyzing network traffic with AI models..."
+                ):
+
+                    response = requests.post(
+                        f"{API_URL}/predict",
+                        files={
+                            "file": (
+                                uploaded_file.name,
+                                uploaded_file.getvalue(),
+                                "text/csv"
+                            )
+                        },
+                        timeout=300
+                    )
+
+                    if response.status_code != 200:
+
+                        st.error(
+                            f"API Error {response.status_code}: "
+                            f"{response.text}"
+                        )
+
+                    else:
+
+                        st.session_state["analysis_result"] = (
+                            response.json()
+                        )
+
+                        st.session_state["analysis_filename"] = (
+                            uploaded_file.name
+                        )
+
+                        st.success(
+                            "Network traffic analysis completed!"
+                        )
+
+            except requests.exceptions.ConnectionError:
+
+                st.error(
+                    "Cannot connect to DeepShield API. "
+                    "Start FastAPI in another terminal."
+                )
+
+            except requests.exceptions.RequestException as error:
+
+                st.error(
+                    f"Request failed: {error}"
+                )
+
+            except ValueError:
+
+                st.error(
+                    "The API returned an invalid JSON response."
+                )
+
+    # =================================================
+    # RESULTS
+    # =================================================
+
+    if "analysis_result" in st.session_state:
+
+        result = st.session_state["analysis_result"]
+
+        summary = result["summary"]
+
+        total = int(result["total_records"])
+        benign = int(summary["benign_records"])
+        attacks = int(summary["attack_records"])
+        anomalies = int(summary["anomalous_records"])
+
+        predictions_df = pd.DataFrame(
+            result["predictions"]
+        )
+
+        if predictions_df.empty:
+
+            st.warning(
+                "No prediction records were returned."
+            )
+
+            st.stop()
+
+        # =============================================
+        # TRAFFIC OVERVIEW
+        # =============================================
+
+        st.divider()
+
+        st.header("📊 Threat Analysis Overview")
+
+        col1, col2, col3, col4 = st.columns(4)
+
+        col1.metric(
+            "Total Records",
+            f"{total:,}"
+        )
+
+        col2.metric(
+            "Benign Traffic",
+            f"{benign:,}"
+        )
+
+        col3.metric(
+            "Detected Attacks",
+            f"{attacks:,}"
+        )
+
+        col4.metric(
+            "Anomaly Flags",
+            f"{anomalies:,}"
+        )
+
+        # =============================================
+        # TRAFFIC ANALYTICS
+        # =============================================
+
+        st.divider()
+
+        st.header("📈 Traffic Analytics")
+
+        left, right = st.columns(2)
+
+        traffic_df = pd.DataFrame({
+            "Traffic Type": [
+                "Benign",
+                "Attack"
+            ],
+            "Records": [
+                benign,
+                attacks
+            ]
+        })
+
+        with left:
+
+            st.subheader("Traffic Distribution")
+
+            fig = px.pie(
+                traffic_df,
+                names="Traffic Type",
+                values="Records",
+                hole=0.55,
+                title="Benign vs Attack Traffic"
+            )
+
+            st.plotly_chart(
+                fig,
                 use_container_width=True
             )
 
-        except Exception as error:
+        with right:
 
-            st.error(f"PDF generation failed: {error}")
+            st.subheader("Attack Family Distribution")
 
-    with report_col2:
+            family_data = summary.get(
+                "attack_families",
+                {}
+            )
 
-        st.subheader("📊 CSV Prediction Report")
+            if family_data:
 
-        csv_data = predictions_df.to_csv(
-            index=False
-        ).encode("utf-8")
+                family_df = pd.DataFrame(
+                    list(family_data.items()),
+                    columns=[
+                        "Attack Family",
+                        "Records"
+                    ]
+                )
 
-        st.download_button(
-            label="⬇️ Download CSV Report",
-            data=csv_data,
-            file_name="DeepShield_Threat_Report.csv",
-            mime="text/csv",
+                fig = px.bar(
+                    family_df,
+                    x="Attack Family",
+                    y="Records",
+                    title="Detected Attack Families"
+                )
+
+                st.plotly_chart(
+                    fig,
+                    use_container_width=True
+                )
+
+            else:
+
+                st.info(
+                    "No attack families detected."
+                )
+
+        # =============================================
+        # ANOMALY DETECTION
+        # =============================================
+
+        st.divider()
+
+        st.header("🔍 Anomaly Detection")
+
+        anomaly_percentage = (
+            anomalies / total * 100 if total else 0
+        )
+
+        st.metric(
+            "Anomalous Traffic Percentage",
+            f"{anomaly_percentage:.2f}%"
+        )
+
+        st.progress(
+            min(anomaly_percentage / 100, 1.0)
+        )
+
+        # =============================================
+        # THREAT INTELLIGENCE
+        # =============================================
+
+        st.divider()
+
+        st.header(
+            "🚨 Threat Intelligence & Risk Assessment"
+        )
+
+        required_columns = [
+            "row_number",
+            "prediction",
+            "attack_probability",
+            "anomaly_detected",
+            "attack_family"
+        ]
+
+        missing_columns = [
+            column
+            for column in required_columns
+            if column not in predictions_df.columns
+        ]
+
+        if missing_columns:
+
+            st.error(
+                "API response is missing columns: "
+                + ", ".join(missing_columns)
+            )
+
+            st.stop()
+
+        predictions_df["attack_probability"] = (
+            pd.to_numeric(
+                predictions_df["attack_probability"],
+                errors="coerce"
+            )
+            .fillna(0)
+            .clip(0, 1)
+        )
+
+        predictions_df["anomaly_detected"] = (
+            predictions_df["anomaly_detected"]
+            .fillna(False)
+            .astype(bool)
+        )
+
+        # Preliminary heuristic score
+        predictions_df["risk_score"] = (
+            predictions_df["attack_probability"] * 80
+            + predictions_df["anomaly_detected"].astype(int) * 20
+        ).clip(0, 100).round(2)
+
+        def get_severity(score):
+
+            if score >= 90:
+                return "CRITICAL"
+
+            elif score >= 70:
+                return "HIGH"
+
+            elif score >= 40:
+                return "MEDIUM"
+
+            return "LOW"
+
+        predictions_df["severity"] = (
+            predictions_df["risk_score"].apply(get_severity)
+        )
+
+        severity_counts = (
+            predictions_df["severity"]
+            .value_counts()
+            .reindex(
+                [
+                    "CRITICAL",
+                    "HIGH",
+                    "MEDIUM",
+                    "LOW"
+                ],
+                fill_value=0
+            )
+        )
+
+        st.subheader(
+            "Threat Severity Overview"
+        )
+
+        c1, c2, c3, c4 = st.columns(4)
+
+        c1.metric(
+            "🔴 Critical",
+            int(severity_counts["CRITICAL"])
+        )
+
+        c2.metric(
+            "🟠 High",
+            int(severity_counts["HIGH"])
+        )
+
+        c3.metric(
+            "🟡 Medium",
+            int(severity_counts["MEDIUM"])
+        )
+
+        c4.metric(
+            "🟢 Low",
+            int(severity_counts["LOW"])
+        )
+
+        severity_df = (
+            severity_counts
+            .rename_axis("Severity")
+            .reset_index(name="Records")
+        )
+
+        fig = px.bar(
+            severity_df,
+            x="Severity",
+            y="Records",
+            color="Severity",
+            title="Threat Severity Distribution",
+            category_orders={
+                "Severity": [
+                    "CRITICAL",
+                    "HIGH",
+                    "MEDIUM",
+                    "LOW"
+                ]
+            }
+        )
+
+        st.plotly_chart(
+            fig,
             use_container_width=True
         )
 
-    # =================================================
-    # FOOTER
-    # =================================================
+        # =============================================
+        # PRIORITY ALERTS
+        # =============================================
 
-    st.divider()
+        st.subheader(
+            "⚠️ Priority Threat Alerts"
+        )
 
-    st.success(
-        "DeepShield network traffic analysis completed successfully."
-    )
+        priority_df = predictions_df[
+            predictions_df["severity"].isin(
+                ["CRITICAL", "HIGH"]
+            )
+        ].sort_values(
+            "risk_score",
+            ascending=False
+        )
 
-    st.caption(
-        "Risk scores are preliminary heuristic indicators, "
-        "not calibrated real-world incident severity. "
-        "Anomaly flags are separate from confirmed attack predictions. "
-        "This system analyzes uploaded network-flow CSV records "
-        "and does not currently capture live network packets."
-    )
+        if not priority_df.empty:
 
+            st.dataframe(
+                priority_df[
+                    [
+                        "row_number",
+                        "prediction",
+                        "attack_probability",
+                        "attack_family",
+                        "anomaly_detected",
+                        "risk_score",
+                        "severity"
+                    ]
+                ],
+                use_container_width=True,
+                hide_index=True
+            )
 
-# =====================================================
-# EMPTY STATE
-# =====================================================
+        else:
 
-else:
+            st.success(
+                "No high or critical risk records found."
+            )
 
-    st.info(
-        "Upload a network traffic CSV file to begin analysis."
-    )
+        # =============================================
+        # DETAILED PREDICTIONS
+        # =============================================
 
-    st.markdown("""
-    ### 🛡️ DeepShield Capabilities
+        st.divider()
 
-    - AI-powered intrusion detection
-    - Binary BENIGN / ATTACK classification
-    - Multiclass attack family identification
-    - Isolation Forest anomaly detection
-    - Threat severity and risk assessment
-    - Automated PDF security reports
-    - CSV prediction exports
-    """)
+        st.header(
+            "📋 Detailed Prediction Results"
+        )
+
+        st.dataframe(
+            predictions_df,
+            use_container_width=True,
+            hide_index=True
+        )
+
+        # =============================================
+        # AUTOMATED REPORT GENERATION
+        # =============================================
+
+        st.divider()
+
+        st.header(
+            "📑 Automated Security Reporting"
+        )
+
+        st.write(
+            "Generate a security report containing traffic statistics, "
+            "attack families, threat severity and priority alerts."
+        )
+
+        report_col1, report_col2 = st.columns(2)
+
+        with report_col1:
+
+            st.subheader("📄 PDF Security Report")
+
+            try:
+
+                pdf_data = generate_pdf_report(
+                    result,
+                    predictions_df
+                )
+
+                st.download_button(
+                    label="⬇️ Download PDF Report",
+                    data=pdf_data,
+                    file_name="DeepShield_Security_Report.pdf",
+                    mime="application/pdf",
+                    use_container_width=True
+                )
+
+            except Exception as error:
+
+                st.error(
+                    f"PDF generation failed: {error}"
+                )
+
+        with report_col2:
+
+            st.subheader("📊 CSV Prediction Report")
+
+            csv_data = predictions_df.to_csv(
+                index=False
+            ).encode("utf-8")
+
+            st.download_button(
+                label="⬇️ Download CSV Report",
+                data=csv_data,
+                file_name="DeepShield_Threat_Report.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+
+        # =============================================
+        # FOOTER
+        # =============================================
+
+        st.divider()
+
+        st.success(
+            "DeepShield network traffic analysis completed successfully."
+        )
+
+        st.caption(
+            "Risk scores are preliminary heuristic indicators, "
+            "not calibrated real-world incident severity. "
+            "Anomaly flags are separate from confirmed attack predictions."
+        )
+
+    else:
+
+        st.info(
+            "Upload a network traffic CSV file to begin analysis."
+        )
+
+        st.markdown("""
+        ### 🛡️ DeepShield Capabilities
+
+        - AI-powered intrusion detection
+        - Binary BENIGN / ATTACK classification
+        - Multiclass attack family identification
+        - Isolation Forest anomaly detection
+        - Threat severity and risk assessment
+        - Automated PDF security reports
+        - CSV prediction exports
+        """)

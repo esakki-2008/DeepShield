@@ -28,3 +28,7 @@ reports/*.jsonl
 .idea/
 .DS_Store
 Thumbs.db
+
+
+# Live monitoring runtime events
+reports/live_events/
