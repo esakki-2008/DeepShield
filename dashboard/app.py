@@ -44,6 +44,13 @@ LIVE_EVENTS_FILE = (
     / "predictions.jsonl"
 )
 
+LIVE_ALERTS_FILE = (
+    BASE_DIR.parent
+    / "reports"
+    / "live_alerts"
+    / "alerts.jsonl"
+)
+
 
 # =====================================================
 # CUSTOM CSS
@@ -631,6 +638,11 @@ dashboard_mode = st.sidebar.radio(
     "NAVIGATION",
     [
         "Live SOC Monitoring",
+        "Alerts & Incidents",
+        "Event Logs",
+        "Analytics",
+        "Models & Performance",
+        "Settings",
         "CSV Traffic Analysis"
     ],
     index=0
@@ -929,6 +941,274 @@ if dashboard_mode == "Live SOC Monitoring":
 
     live_soc_dashboard()
     st.stop()
+
+# ALERTS & INCIDENTS
+# =====================================================
+
+elif dashboard_mode == "Alerts & Incidents":
+
+    st.title("🚨 Alerts & Incidents")
+    st.caption(
+        "Review security alerts written by DeepShield's live detection engine. "
+        "Only saved ATTACK classifications appear here."
+    )
+
+    alert_records = []
+    if LIVE_ALERTS_FILE.exists():
+        try:
+            with LIVE_ALERTS_FILE.open("r", encoding="utf-8") as alert_file:
+                for line in alert_file:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        record = json.loads(line)
+                        if isinstance(record, dict):
+                            alert_records.append(record)
+                    except json.JSONDecodeError:
+                        continue
+
+        except OSError as error:
+            st.error(f"Could not read alert history: {error}")
+
+    alerts_df = pd.DataFrame(alert_records)
+
+    if not alerts_df.empty:
+        if "timestamp" in alerts_df.columns:
+            alerts_df["timestamp"] = pd.to_datetime(
+                alerts_df["timestamp"], errors="coerce"
+            )
+        if "attack_probability" in alerts_df.columns:
+            alerts_df["attack_probability"] = pd.to_numeric(
+                alerts_df["attack_probability"], errors="coerce"
+            ).fillna(0).clip(0, 1)
+        if "total_packets" in alerts_df.columns:
+            alerts_df["total_packets"] = pd.to_numeric(
+                alerts_df["total_packets"], errors="coerce"
+            ).fillna(0).astype(int)
+        for column in ["severity", "classification", "protocol"]:
+            if column in alerts_df.columns:
+                alerts_df[column] = alerts_df[column].astype(str).str.upper()
+
+    total_alerts = len(alerts_df)
+    critical_count = int((alerts_df["severity"] == "CRITICAL").sum()) if "severity" in alerts_df else 0
+    high_count = int((alerts_df["severity"] == "HIGH").sum()) if "severity" in alerts_df else 0
+    medium_count = int((alerts_df["severity"] == "MEDIUM").sum()) if "severity" in alerts_df else 0
+    low_count = int((alerts_df["severity"] == "LOW").sum()) if "severity" in alerts_df else 0
+
+    m1, m2, m3, m4, m5 = st.columns(5)
+    m1.metric("Total Alerts", f"{total_alerts:,}")
+    m2.metric("Critical", f"{critical_count:,}")
+    m3.metric("High", f"{high_count:,}")
+    m4.metric("Medium", f"{medium_count:,}")
+    m5.metric("Low", f"{low_count:,}")
+
+    st.divider()
+    st.subheader("Alert Investigation")
+
+    if alerts_df.empty:
+        st.success("No saved security alerts found.")
+        st.info(
+            "The live engine writes an alert only when its binary classifier "
+            "returns ATTACK. BENIGN prediction events are stored separately "
+            "in reports/live_events/predictions.jsonl."
+        )
+    else:
+        filter_col, search_col = st.columns([1, 2])
+        severity_options = ["All", "CRITICAL", "HIGH", "MEDIUM", "LOW"]
+        selected_severity = filter_col.selectbox(
+            "Filter by severity", severity_options, key="alert_severity_filter"
+        )
+        search_text = search_col.text_input(
+            "Search IP, protocol or alert ID", key="alert_search"
+        )
+
+        filtered = alerts_df.copy()
+        if selected_severity != "All" and "severity" in filtered.columns:
+            filtered = filtered[filtered["severity"] == selected_severity]
+        if search_text.strip():
+            term = search_text.strip().lower()
+            searchable = [
+                column for column in [
+                    "alert_id", "source_ip", "destination_ip", "protocol"
+                ] if column in filtered.columns
+            ]
+            if searchable:
+                mask = filtered[searchable].astype(str).apply(
+                    lambda column: column.str.lower().str.contains(term, regex=False)
+                ).any(axis=1)
+                filtered = filtered[mask]
+
+        display = filtered.copy()
+        if "timestamp" in display.columns:
+            display = display.sort_values("timestamp", ascending=False, na_position="last")
+            display["timestamp"] = display["timestamp"].dt.strftime("%Y-%m-%d %H:%M:%S").fillna("Unknown")
+        if "attack_probability" in display.columns:
+            display["attack_probability"] = display["attack_probability"].map(
+                lambda value: f"{value:.4f}"
+            )
+
+        display_columns = [
+            "alert_id", "timestamp", "severity", "source_ip",
+            "destination_ip", "destination_port", "protocol",
+            "total_packets", "attack_probability", "classification"
+        ]
+        display_columns = [column for column in display_columns if column in display.columns]
+        st.dataframe(
+            display[display_columns],
+            use_container_width=True,
+            hide_index=True,
+            height=420
+        )
+        st.caption(f"Showing {len(filtered):,} of {total_alerts:,} saved alert records.")
+
+        csv_bytes = filtered.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            "⬇️ Export filtered alerts (CSV)",
+            data=csv_bytes,
+            file_name="deepshield_alerts.csv",
+            mime="text/csv"
+        )
+
+    st.caption(
+        "Severity is assigned from the model's attack probability using the "
+        "thresholds configured in AlertManager. It is a triage label, not a "
+        "validated real-world incident severity assessment."
+    )
+
+# EVENT LOGS
+# =====================================================
+
+elif dashboard_mode == "Event Logs":
+
+    st.title("📜 Event Logs")
+    st.caption("Browse prediction events recorded by the live detection engine.")
+
+    event_df = load_live_events()
+    if event_df.empty:
+        st.info("No prediction events have been saved yet.")
+    else:
+        search_col, type_col = st.columns([2, 1])
+        event_search = search_col.text_input(
+            "Search source IP, destination IP or protocol", key="event_log_search"
+        )
+        stage_filter = type_col.selectbox(
+            "Prediction stage", ["All", "PROVISIONAL", "FINAL"],
+            key="event_stage_filter"
+        )
+        view = event_df.copy()
+        if stage_filter != "All" and "prediction_stage" in view.columns:
+            view = view[view["prediction_stage"].astype(str).str.upper() == stage_filter]
+        if event_search.strip():
+            term = event_search.strip().lower()
+            searchable = [
+                column for column in ["source_ip", "destination_ip", "protocol"]
+                if column in view.columns
+            ]
+            if searchable:
+                mask = view[searchable].astype(str).apply(
+                    lambda column: column.str.lower().str.contains(term, regex=False)
+                ).any(axis=1)
+                view = view[mask]
+        if "timestamp" in view.columns:
+            view = view.sort_values("timestamp", ascending=False)
+            view["timestamp"] = view["timestamp"].dt.strftime("%Y-%m-%d %H:%M:%S").fillna("Unknown")
+        cols = [
+            "timestamp", "prediction_stage", "classification", "attack_probability",
+            "source_ip", "destination_ip", "destination_port", "protocol", "total_packets"
+        ]
+        cols = [column for column in cols if column in view.columns]
+        st.dataframe(view[cols].head(1000), use_container_width=True, hide_index=True, height=520)
+        st.caption(f"Showing up to 1,000 of {len(view):,} matching prediction events.")
+
+# ANALYTICS
+# =====================================================
+
+elif dashboard_mode == "Analytics":
+
+    st.title("📊 Security Analytics")
+    st.caption("Summary statistics calculated from saved live prediction events.")
+    event_df = load_live_events()
+    if event_df.empty:
+        st.info("No live events are available for analytics yet.")
+    else:
+        stats = get_live_statistics(event_df)
+        a, b, d, e = st.columns(4)
+        a.metric("Prediction Events", f"{stats['total_events']:,}")
+        b.metric("Benign", f"{stats['benign_events']:,}")
+        d.metric("Attack", f"{stats['attack_events']:,}")
+        e.metric("Average Attack Probability", f"{stats['average_attack_probability']:.2%}")
+
+        chart_df = event_df.copy()
+        if "timestamp" in chart_df.columns:
+            chart_df["minute"] = chart_df["timestamp"].dt.floor("min")
+            trend = chart_df.groupby(["minute", "prediction"], dropna=False).size().reset_index(name="events")
+            if not trend.empty:
+                fig = px.line(
+                    trend, x="minute", y="events", color="prediction",
+                    title="Prediction Events Over Time", markers=True,
+                    color_discrete_map={"BENIGN": "#20c9f5", "ATTACK": "#ff5263"}
+                )
+                fig.update_layout(
+                    template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=10,r=10,t=45,b=10)
+                )
+                st.plotly_chart(fig, use_container_width=True)
+        if "protocol" in chart_df.columns:
+            protocol_counts = chart_df["protocol"].astype(str).str.upper().value_counts().rename_axis("Protocol").reset_index(name="Events")
+            fig = px.bar(
+                protocol_counts, x="Protocol", y="Events", color="Protocol",
+                title="Protocol Distribution"
+            )
+            fig.update_layout(
+                template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)", showlegend=False
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        st.caption("These charts describe saved prediction events, not raw packet throughput or unique network flows.")
+
+# MODELS & PERFORMANCE
+# =====================================================
+
+elif dashboard_mode == "Models & Performance":
+
+    st.title("🧠 Models & Performance")
+    st.caption("Model artifacts and evaluation results available in this project.")
+    model_dir = BASE_DIR.parent / "models"
+    model_files = [
+        model_dir / "binary_xgboost.joblib",
+        model_dir / "multiclass_xgboost.joblib",
+        model_dir / "calibrated_hybrid_detector.joblib"
+    ]
+    for model_file in model_files:
+        if model_file.exists():
+            st.success(f"{model_file.name} — file found")
+        else:
+            st.warning(f"{model_file.name} — file not found locally")
+    st.info(
+        "For measured evaluation metrics, consult the saved reports under "
+        "reports/. This page does not invent performance figures or infer "
+        "metrics from model file presence."
+    )
+    report_dir = BASE_DIR.parent / "reports"
+    report_files = sorted(report_dir.glob("*.csv")) if report_dir.exists() else []
+    if report_files:
+        st.subheader("Available evaluation reports")
+        st.write([path.name for path in report_files])
+
+# SETTINGS
+# =====================================================
+
+elif dashboard_mode == "Settings":
+
+    st.title("⚙️ Settings")
+    st.caption("Read-only view of current DeepShield configuration.")
+    st.write("API endpoint:", API_URL)
+    st.write("Prediction event file:", str(LIVE_EVENTS_FILE))
+    st.write("Alert history file:", str(LIVE_ALERTS_FILE))
+    st.write("Live dashboard refresh: every 2 seconds")
+    st.write("Live prediction threshold: 0.50 (configured in live predictor)")
+    st.info("Settings are currently informational. Changing these values does not reconfigure the detection engine.")
 
 # CSV TRAFFIC ANALYSIS
 # =====================================================
