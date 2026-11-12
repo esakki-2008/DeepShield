@@ -52,43 +52,62 @@ LIVE_EVENTS_FILE = (
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-:root { --bg:#061326; --panel:#0b1c33; --line:#174a78; --cyan:#19c7f7; --blue:#238cff; --green:#00e58b; --red:#ff5268; --purple:#a66cff; --text:#e8f3ff; --muted:#91aac6; }
-html, body, [class*="css"] { font-family:'Inter',sans-serif; }
-.stApp { background:radial-gradient(ellipse at 50% -20%,rgba(0,139,255,.20),transparent 45%),linear-gradient(135deg,#061326 0%,#07152a 55%,#061020 100%); color:var(--text); }
-[data-testid="stHeader"] { background:rgba(5,15,29,.82); }
-[data-testid="stSidebar"] { background:linear-gradient(180deg,#08172b 0%,#061020 100%); border-right:1px solid #12385d; }
-[data-testid="stSidebar"] * { color:var(--text); }
-/* Force Streamlit's main canvas to use the full browser width */
-[data-testid="stMainBlockContainer"],
-.stMainBlockContainer,
-.block-container {
-  width: 100% !important;
-  max-width: 100% !important;
-  padding-left: 2rem !important;
-  padding-right: 2rem !important;
-  padding-top: 1.25rem !important;
-  padding-bottom: 2rem !important;
-  margin-left: 0 !important;
-  margin-right: 0 !important;
-  box-sizing: border-box !important;
-}
-@media (max-width: 900px) {
-  [data-testid="stMainBlockContainer"],
-  .stMainBlockContainer,
-  .block-container {
-    padding-left: 1rem !important;
-    padding-right: 1rem !important;
-  }
-}
-h1,h2,h3 { color:#f3f8ff !important; letter-spacing:-.03em; font-weight:800 !important; }
-[data-testid="stMetric"] { background:linear-gradient(145deg,rgba(13,39,68,.98),rgba(8,25,46,.98)); border:1px solid #18558a; border-radius:15px; padding:15px 17px; box-shadow:0 8px 24px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.04); min-height:112px; }
-[data-testid="stMetricLabel"] { color:#a9c3df !important; font-weight:600; }
-[data-testid="stMetricValue"] { color:#f4f9ff !important; font-weight:800; }
-div[data-testid="stPlotlyChart"] { background:linear-gradient(145deg,rgba(9,28,51,.95),rgba(7,21,39,.95)); border:1px solid #164b79; border-radius:16px; padding:8px; }
-div[data-testid="stDataFrame"] { border:1px solid #164b79; border-radius:13px; overflow:hidden; }
-.stButton>button,.stDownloadButton>button { border-radius:10px; border:1px solid #168dd0; background:linear-gradient(90deg,#087cc5,#1555b8); color:white; font-weight:700; }
-hr { border-color:#173d63 !important; }
-[data-testid="stCaptionContainer"] { color:#91aac6 !important; }
+:root {--bg:#061326;--panel:#0a1b32;--line:#15518a;--cyan:#20c9f5;--blue:#159bff;--green:#00e99a;--red:#ff5263;--purple:#a45cff;--gold:#f2bd26;}
+html,body,[class*="css"]{font-family:Inter,sans-serif;}
+.stApp{background:radial-gradient(ellipse at 45% -10%,rgba(0,112,220,.22),transparent 48%),linear-gradient(135deg,#061326,#07152b 58%,#041020);color:#eaf4ff;}
+[data-testid="stHeader"]{background:rgba(4,15,29,.88);}
+[data-testid="stSidebar"]{background:linear-gradient(180deg,#07162a,#050f1e);border-right:1px solid #153e67;}
+[data-testid="stSidebar"] *{color:#eaf4ff;}
+[data-testid="stMainBlockContainer"],.stMainBlockContainer,.block-container{width:100%!important;max-width:100%!important;padding:1rem 1.25rem 2rem!important;box-sizing:border-box!important;}
+h1,h2,h3{color:#f3f8ff!important;letter-spacing:-.025em;font-weight:800!important;}
+[data-testid="stMetric"]{background:#0a2039;border:1px solid #1765a2;border-radius:13px;padding:12px;min-height:105px;}
+[data-testid="stMetricLabel"]{color:#aec7e2!important;}
+[data-testid="stMetricValue"]{color:#fff!important;font-weight:800;}
+div[data-testid="stPlotlyChart"]{background:linear-gradient(145deg,#091b32,#07162a);border:1px solid #15518a;border-radius:15px;padding:7px;}
+div[data-testid="stDataFrame"]{border:1px solid #15518a;border-radius:12px;overflow:hidden;}
+.stButton>button,.stDownloadButton>button{border-radius:10px;border:1px solid #168dd0;background:linear-gradient(90deg,#087cc5,#1555b8);color:white;font-weight:700;}
+hr{border-color:#17436d!important;}
+[data-testid="stCaptionContainer"]{color:#8faac8!important;}
+.ds-app-title{display:flex;align-items:center;gap:12px;padding:3px 0 8px;}
+.ds-app-mark{font-size:32px;color:#27c8ff;text-shadow:0 0 18px #008cff;}
+.ds-app-title b{display:block;font-size:23px;color:#fff;}
+.ds-app-title small{display:block;color:#9bb8d7;font-size:12px;margin-top:2px;}
+.ds-topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 14px;margin-bottom:12px;border:1px solid #164d7d;border-radius:14px;background:linear-gradient(100deg,#07172b,#0b2340);}
+.ds-brand{display:flex;align-items:center;gap:10px;}
+.ds-shield{font-size:30px;color:#24c8ff;text-shadow:0 0 16px #078bff;}
+.ds-brand-name{font-size:22px;font-weight:800;color:#fff;}
+.ds-brand-sub{font-size:11px;color:#a7c0dc;}
+.ds-top-status,.ds-chip,.ds-status{padding:8px 13px;border-radius:11px;border:1px solid #27557e;background:#0b2038;color:#dcecff;font-size:12px;font-weight:700;}
+.ds-top-status{border-color:#087c59;color:#6affbd;background:#052b27;}
+.ds-live-dot{display:inline-block;width:9px;height:9px;background:#00ed9b;border-radius:50%;margin-right:7px;box-shadow:0 0 10px #00ed9b;}
+.ds-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:9px 4px 16px;}
+.ds-heading h1{font-size:clamp(23px,2.1vw,32px);margin:0;}
+.ds-heading p{margin:3px 0 0;color:#a9c1dc;font-size:13px;}
+.ds-statuses{display:flex;gap:8px;flex-wrap:wrap;}
+.ds-green{border-color:#087d5b;color:#6dffc1;}.ds-blue{border-color:#326a9c;color:#a9d8ff;}.ds-purple{border-color:#6742a5;color:#d1b5ff;}
+.ds-kpi{position:relative;min-height:112px;padding:13px 12px 11px 58px;border-radius:14px;border:1px solid #176aa8;background:linear-gradient(145deg,#092b4c,#071a30);box-shadow:inset 0 1px 0 rgba(255,255,255,.04);}
+.ds-kpi-icon{position:absolute;left:14px;top:17px;font-size:27px;font-weight:800;color:#27baff;text-shadow:0 0 15px currentColor;}
+.ds-kpi-label{font-size:11px;color:#c1d4e8;min-height:28px;line-height:1.3;}
+.ds-kpi-value{font-size:clamp(19px,1.7vw,27px);font-weight:800;color:#fff;white-space:nowrap;}
+.ds-kpi-foot{font-size:10px;color:#8daecc;margin-top:3px;}
+.ds-kpi.green{border-color:#00895f;background:linear-gradient(145deg,#063a34,#071d2d);}.ds-kpi.green .ds-kpi-icon{color:#00e99a;}
+.ds-kpi.red{border-color:#a52b43;background:linear-gradient(145deg,#3a1527,#1b172c);}.ds-kpi.red .ds-kpi-icon{color:#ff5263;}
+.ds-kpi.purple{border-color:#6640a8;background:linear-gradient(145deg,#21183f,#111a35);}.ds-kpi.purple .ds-kpi-icon{color:#b276ff;}
+.ds-kpi.gold{border-color:#8c7018;background:linear-gradient(145deg,#342b10,#1d1c20);}.ds-kpi.gold .ds-kpi-icon{color:#ffd32c;}
+.ds-kpi.cyan{border-color:#087c9a;background:linear-gradient(145deg,#073447,#081d31);}.ds-kpi.cyan .ds-kpi-icon{color:#00d8ef;}
+.ds-section-title{font-size:17px;font-weight:800;color:#f2f7ff;padding:10px 2px 5px;}
+.ds-legend-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap;color:#bcd1e8;font-size:11px;padding:0 12px 10px;}
+.ds-legend-row b{margin-right:10px;color:#fff;}
+.dot{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;}.dot.tcp{background:#159bff;}.dot.udp{background:#9855f5;}
+.ds-bar-label{display:flex;justify-content:space-between;gap:8px;color:#d7e5f5;font-size:12px;margin:10px 0 4px;}
+.ds-bar-label b{color:#fff;}
+.ds-bar-track{height:13px;background:#203a55;border-radius:5px;overflow:hidden;margin-bottom:13px;}
+.ds-bar-track div{height:100%;border-radius:5px;box-shadow:0 0 10px rgba(30,170,255,.25);}
+.ds-empty-alert{min-height:245px;border:1px solid #15518a;border-radius:14px;background:linear-gradient(145deg,#081d35,#07172a);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:18px;}
+.ds-check{font-size:36px;color:#00eb9b;border:3px solid #00d98e;border-radius:50%;width:52px;height:52px;line-height:45px;margin-bottom:14px;}
+.ds-empty-alert b{font-size:16px;color:#f3f8ff;}
+.ds-empty-alert p{font-size:12px;color:#a9bfd8;margin:8px 0 0;}
+@media(max-width:900px){.ds-kpi{padding-left:48px;}.ds-kpi-icon{left:10px;font-size:22px;}.ds-statuses{gap:5px;}}
 </style>
 """, unsafe_allow_html=True)
 
@@ -564,31 +583,31 @@ def generate_pdf_report(result, predictions_df):
     return buffer.getvalue()
 
 # =====================================================
+# =====================================================
 # HEADER
 # =====================================================
 
-st.title("🛡️ DeepShield")
-
-st.subheader(
-    "Intelligent Network Intrusion Detection & Threat Analytics"
-)
-
-st.caption(
-    "AI-powered network traffic classification, "
-    "attack identification and real-time anomaly monitoring."
+st.markdown(
+    """
+    <div class="ds-app-title">
+      <span class="ds-app-mark">⬡</span>
+      <div><b>DeepShield</b><small>AI-Powered Network Intrusion Detection & Threat Analytics</small></div>
+    </div>
+    """,
+    unsafe_allow_html=True
 )
 
 st.divider()
 
 
-# =====================================================
 # SIDEBAR
 # =====================================================
 
-st.sidebar.title("⚙️ Control Panel")
+st.sidebar.markdown("## 🛡️ DeepShield")
+st.sidebar.caption("SECURITY CONTROL PANEL")
 
 dashboard_mode = st.sidebar.radio(
-    "Select Monitoring Mode",
+    "NAVIGATION",
     [
         "Live SOC Monitoring",
         "CSV Traffic Analysis"
@@ -624,301 +643,258 @@ st.sidebar.caption(
 
 
 # =====================================================
+# =====================================================
 # LIVE SOC MONITORING
 # =====================================================
 
 if dashboard_mode == "Live SOC Monitoring":
-
-    st.markdown(
-        """
-        <div style="padding:18px 20px;border:1px solid #174a78;border-radius:16px;
-                    background:linear-gradient(110deg,rgba(9,34,62,.96),rgba(7,22,42,.94));">
-          <div style="font-size:12px;color:#55cfff;font-weight:700;letter-spacing:2px;">DEEPSHIELD / LIVE DEFENSE</div>
-          <div style="font-size:27px;font-weight:800;color:#f2f8ff;margin-top:3px;">Security Operations Center</div>
-          <div style="font-size:13px;color:#9eb8d4;margin-top:4px;">Real-time network-flow analysis, threat detection and event intelligence</div>
-          <div style="margin-top:12px;color:#4fffb3;font-size:12px;font-weight:700;">● LIVE SOC &nbsp;&nbsp; | &nbsp;&nbsp; MODEL · XGBOOST &nbsp;&nbsp; | &nbsp;&nbsp; AUTO REFRESH · 2s</div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-    st.info(
-        "Make sure capture/live_detection_engine.py "
-        "is running in a separate terminal."
-    )
 
     @st.fragment(run_every="2s")
     def live_soc_dashboard():
 
         df = load_live_events()
 
+        # Brand banner inspired by the approved DeepShield SOC reference.
+        st.markdown(
+            """
+            <div class="ds-topbar">
+              <div class="ds-brand">
+                <div class="ds-shield">⬡</div>
+                <div><div class="ds-brand-name">DeepShield</div>
+                <div class="ds-brand-sub">AI-Powered Network Intrusion Detection</div></div>
+              </div>
+              <div class="ds-top-status"><span class="ds-live-dot"></span> Live Monitoring</div>
+              <div class="ds-chip">◉ Wi-Fi · Local capture</div>
+              <div class="ds-chip">XGBoost · Binary IDS</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        st.markdown(
+            """
+            <div class="ds-heading">
+              <div><h1>Security Operations Center (SOC)</h1>
+              <p>Real-time network traffic analysis, threat detection and intelligent alerts</p></div>
+              <div class="ds-statuses">
+                <span class="ds-status ds-green">⬡ IDS: Active</span>
+                <span class="ds-status ds-blue">▦ Model: XGBoost</span>
+                <span class="ds-status ds-purple">⚡ Response: Monitoring</span>
+              </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
         if df.empty:
-
-            st.warning(
-                "No live prediction events found yet."
-            )
-
-            st.markdown(
-                """
-                ### Start Live Monitoring
-
-                Open another PowerShell terminal and run:
-
-                ```powershell
-                python capture\\live_detection_engine.py
-                ```
-
-                Once network traffic is captured, "
-                "predictions will appear here automatically.
-                """
-            )
-
+            st.warning("No live prediction events found. Start the capture engine to populate the SOC.")
+            st.code("python -m capture.live_detection_engine", language="powershell")
             return
 
+        if "classification" not in df.columns:
+            df["classification"] = df.get("prediction", "UNKNOWN")
+        df["classification"] = df["classification"].astype(str).str.upper().str.strip()
+        df["prediction"] = df["classification"]
+
+        for column, default in [
+            ("protocol", "UNKNOWN"),
+            ("source_ip", "Unknown"),
+            ("destination_ip", "Unknown"),
+            ("destination_port", pd.NA),
+            ("total_packets", 0),
+            ("prediction_stage", "UNKNOWN"),
+            ("attack_probability", 0.0)
+        ]:
+            if column not in df.columns:
+                df[column] = default
+
+        df["protocol"] = df["protocol"].fillna("UNKNOWN").astype(str).str.upper()
+        df["destination_port"] = pd.to_numeric(df["destination_port"], errors="coerce")
+        df["total_packets"] = pd.to_numeric(df["total_packets"], errors="coerce").fillna(0)
+        df["attack_probability"] = pd.to_numeric(df["attack_probability"], errors="coerce").fillna(0).clip(0, 1)
+        df["prediction_stage"] = df["prediction_stage"].fillna("UNKNOWN").astype(str).str.upper()
+
         stats = get_live_statistics(df)
+        total = len(df)
+        benign = stats["benign_events"]
+        attacks = stats["attack_events"]
+        avg_prob = stats["average_attack_probability"] * 100
+        provisional = int((df["prediction_stage"] == "PROVISIONAL").sum())
+        final_count = int((df["prediction_stage"] == "FINAL").sum())
+        unique_destinations = int(df["destination_ip"].nunique())
+        protocol_counts = df["protocol"].value_counts()
+        tcp_count = int(protocol_counts.get("TCP", 0))
+        udp_count = int(protocol_counts.get("UDP", 0))
+        tcp_pct = tcp_count / total * 100 if total else 0
+        udp_pct = udp_count / total * 100 if total else 0
 
-        # ---------------------------------------------
-        # SUMMARY METRICS
-        # ---------------------------------------------
+        # Six KPI cards. Values are sourced from captured event records.
+        kpis = st.columns(6)
+        cards = [
+            ("◈", "Total Events", f"{total:,}", "Recorded predictions", "blue"),
+            ("⬡", "Benign Traffic", f"{benign:,}", f"{benign / total * 100:.2f}% of events" if total else "—", "green"),
+            ("◎", "Attack Traffic", f"{attacks:,}", f"{attacks / total * 100:.2f}% of events" if total else "—", "red"),
+            ("∿", "Attack Probability (Avg)", f"{avg_prob:.2f}%", "Mean model probability", "purple"),
+            ("⌘", "Unique Destinations", f"{unique_destinations:,}", "Observed destination IPs", "gold"),
+            ("▤", "Packets Observed", f"{int(df['total_packets'].sum()):,}", "Across prediction events", "cyan")
+        ]
+        for col, (symbol, label, value, foot, tone) in zip(kpis, cards):
+            with col:
+                st.markdown(
+                    f'<div class="ds-kpi {tone}"><div class="ds-kpi-icon">{symbol}</div>'
+                    f'<div class="ds-kpi-label">{label}</div><div class="ds-kpi-value">{value}</div>'
+                    f'<div class="ds-kpi-foot">{foot}</div></div>',
+                    unsafe_allow_html=True
+                )
 
-        st.subheader("📊 Live Traffic Overview")
-
-        provisional_count = int(
-            (df["prediction_stage"].astype(str).str.upper() == "PROVISIONAL").sum()
-        ) if "prediction_stage" in df.columns else 0
-
-        final_count = int(
-            (df["prediction_stage"].astype(str).str.upper() == "FINAL").sum()
-        ) if "prediction_stage" in df.columns else 0
-
-        metric_cols = st.columns(6)
-        metric_cols[0].metric("Total Events", f"{stats['total_events']:,}")
-        metric_cols[1].metric("Benign Traffic", f"{stats['benign_events']:,}")
-        metric_cols[2].metric("Attack Traffic", f"{stats['attack_events']:,}")
-        metric_cols[3].metric("Avg Attack Probability", f"{stats['average_attack_probability'] * 100:.2f}%")
-        metric_cols[4].metric("Provisional", f"{provisional_count:,}")
-        metric_cols[5].metric("Final Predictions", f"{final_count:,}")
-
-        st.divider()
-
-        # ---------------------------------------------
-        # TRAFFIC DISTRIBUTION
-        # ---------------------------------------------
-
-        st.subheader("📈 Traffic Distribution")
-
-        left, right = st.columns(2)
-
-        traffic_df = pd.DataFrame({
-            "Traffic Type": [
-                "BENIGN",
-                "ATTACK"
-            ],
-            "Events": [
-                stats["benign_events"],
-                stats["attack_events"]
-            ]
-        })
+        st.markdown('<div class="ds-grid-two">', unsafe_allow_html=True)
+        left, right = st.columns([0.9, 1.2], gap="medium")
 
         with left:
-
+            st.markdown('<div class="ds-section-title">▤ &nbsp; Traffic Distribution</div>', unsafe_allow_html=True)
+            protocol_df = pd.DataFrame({
+                "Protocol": ["TCP", "UDP", "Other"],
+                "Events": [tcp_count, udp_count, max(total - tcp_count - udp_count, 0)]
+            })
             fig = px.pie(
-                traffic_df,
-                names="Traffic Type",
-                values="Events",
-                hole=0.55,
-                title="Benign vs Attack Predictions"
+                protocol_df, names="Protocol", values="Events", hole=0.66,
+                color="Protocol",
+                color_discrete_map={"TCP": "#159bff", "UDP": "#9855f5", "Other": "#19d6c2"}
             )
-
-            st.plotly_chart(
-                fig,
-                use_container_width=True
+            fig.update_traces(textinfo="none", marker=dict(line=dict(color="#07172b", width=3)))
+            fig.update_layout(
+                height=285, margin=dict(l=10,r=10,t=10,b=10),
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#e7f2ff"), legend=dict(orientation="v", x=1.0, y=0.5),
+                annotations=[dict(text=f"<b>{total:,}</b><br>Events", x=.42, y=.5, showarrow=False,
+                                  font=dict(size=19, color="#f5f9ff"))]
+            )
+            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+            st.markdown(
+                f'<div class="ds-legend-row"><span><i class="dot tcp"></i> TCP</span><b>{tcp_pct:.1f}% ({tcp_count:,})</b>'
+                f'<span><i class="dot udp"></i> UDP</span><b>{udp_pct:.1f}% ({udp_count:,})</b></div>',
+                unsafe_allow_html=True
             )
 
         with right:
-
-            st.metric(
-                "Average Attack Probability",
-                f"{stats['average_attack_probability'] * 100:.2f}%"
-            )
-
-            st.progress(
-                float(
-                    stats["average_attack_probability"]
+            st.markdown('<div class="ds-section-title">⌁ &nbsp; Traffic Trends (Last 15 Minutes)</div>', unsafe_allow_html=True)
+            trend_df = df.dropna(subset=["timestamp"]).copy() if "timestamp" in df.columns else pd.DataFrame()
+            if not trend_df.empty:
+                trend_df["minute"] = trend_df["timestamp"].dt.floor("min")
+                trend = trend_df.groupby(["minute", "classification"], as_index=False).agg(
+                    packets=("total_packets", "sum")
                 )
-            )
-
-            st.caption(
-                "Average model attack probability across "
-                "recorded prediction events."
-            )
-
-        st.divider()
-
-        # ---------------------------------------------
-        # ATTACK PROBABILITY TIMELINE
-        # ---------------------------------------------
-
-        st.subheader("📉 Attack Probability Timeline")
-
-        if (
-            "timestamp" in df.columns
-            and "attack_probability" in df.columns
-        ):
-
-            timeline_df = df.dropna(
-                subset=["timestamp"]
-            ).sort_values("timestamp")
-
-            if not timeline_df.empty:
-
                 fig = px.line(
-                    timeline_df,
-                    x="timestamp",
-                    y="attack_probability",
-                    color="prediction",
-                    title="Live Attack Probability",
-                    labels={
-                        "timestamp": "Time",
-                        "attack_probability": "Attack Probability",
-                        "prediction": "Prediction"
-                    }
+                    trend, x="minute", y="packets", color="classification",
+                    color_discrete_map={"BENIGN": "#16e6a0", "ATTACK": "#ff4c63"},
+                    markers=True
                 )
-
-                fig.update_yaxes(
-                    range=[0, 1]
+                fig.update_layout(
+                    height=285, margin=dict(l=12,r=12,t=15,b=10),
+                    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                    font=dict(color="#c8d9ef"), xaxis_title="", yaxis_title="Packets recorded",
+                    legend=dict(orientation="h", y=1.12, x=0.55),
+                    xaxis=dict(gridcolor="rgba(110,160,210,.15)"),
+                    yaxis=dict(gridcolor="rgba(110,160,210,.15)")
                 )
-
-                st.plotly_chart(
-                    fig,
-                    use_container_width=True
-                )
-
+                st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+                st.caption("Trend aggregates packet counts attached to prediction events by minute; it is not a packet-rate sensor.")
             else:
+                st.info("Waiting for timestamped events.")
 
-                st.info(
-                    "No valid timestamps available."
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        left, right = st.columns([1, 1], gap="medium")
+        with left:
+            st.markdown('<div class="ds-section-title">∿ &nbsp; Attack Probability Timeline</div>', unsafe_allow_html=True)
+            timeline = df.dropna(subset=["timestamp"]).sort_values("timestamp").copy() if "timestamp" in df.columns else pd.DataFrame()
+            if not timeline.empty:
+                timeline["probability_pct"] = timeline["attack_probability"] * 100
+                fig = px.line(
+                    timeline, x="timestamp", y="probability_pct", color="prediction_stage",
+                    color_discrete_map={"PROVISIONAL": "#a65bff", "FINAL": "#22c8ff", "UNKNOWN": "#7b91ad"}
                 )
+                fig.update_layout(
+                    height=245, margin=dict(l=10,r=10,t=10,b=10),
+                    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                    font=dict(color="#c8d9ef"), xaxis_title="", yaxis_title="Probability (%)",
+                    yaxis=dict(range=[0, max(1, float(timeline["probability_pct"].max()) * 1.25)],
+                               gridcolor="rgba(110,160,210,.15)"),
+                    xaxis=dict(gridcolor="rgba(110,160,210,.15)"),
+                    legend=dict(orientation="h", y=1.12)
+                )
+                st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+            else:
+                st.info("No timestamped probabilities available.")
 
-        else:
+        with right:
+            st.markdown('<div class="ds-section-title">⬟ &nbsp; Protocol & Port Analysis</div>', unsafe_allow_html=True)
+            proto_cols = st.columns(2)
+            with proto_cols[0]:
+                st.markdown("**Protocol Usage**")
+                for protocol, count, color in [("TCP", tcp_count, "#159bff"), ("UDP", udp_count, "#9855f5")]:
+                    pct = count / total * 100 if total else 0
+                    st.markdown(
+                        f'<div class="ds-bar-label"><span>{protocol}</span><b>{pct:.1f}%</b></div>'
+                        f'<div class="ds-bar-track"><div style="width:{pct:.2f}%;background:{color}"></div></div>',
+                        unsafe_allow_html=True
+                    )
+            with proto_cols[1]:
+                st.markdown("**Top Destination Ports**")
+                ports = df["destination_port"].dropna().astype(int).value_counts().head(5)
+                if ports.empty:
+                    st.caption("No port data available.")
+                else:
+                    for port, count in ports.items():
+                        pct = count / total * 100 if total else 0
+                        label = {443:"443 (HTTPS)",53:"53 (DNS)",80:"80 (HTTP)"}.get(int(port), str(port))
+                        st.markdown(
+                            f'<div class="ds-bar-label"><span>{label}</span><b>{pct:.1f}%</b></div>'
+                            f'<div class="ds-bar-track"><div style="width:{pct:.2f}%;background:#25baf5"></div></div>',
+                            unsafe_allow_html=True
+                        )
 
-            st.info(
-                "Probability timeline data is unavailable."
-            )
+        left, right = st.columns([1.55, 0.85], gap="medium")
+        with left:
+            st.markdown('<div class="ds-section-title">▣ &nbsp; Recent Network Predictions</div>', unsafe_allow_html=True)
+            recent = df.sort_values("timestamp", ascending=False) if "timestamp" in df.columns else df.iloc[::-1]
+            table = recent.head(12).copy()
+            if "timestamp" in table.columns:
+                table["Time"] = table["timestamp"].dt.strftime("%H:%M:%S")
+            table = table.rename(columns={
+                "source_ip":"Source IP", "destination_ip":"Destination IP",
+                "destination_port":"Port", "protocol":"Protocol",
+                "total_packets":"Packets", "attack_probability":"Attack Prob.",
+                "classification":"Prediction"
+            })
+            if "attack_probability" in recent.columns:
+                table["Attack Prob."] = table["attack_probability"].map(lambda x: f"{x:.4f}")
+            show_cols = [x for x in ["Time","source_ip","destination_ip","Port","Protocol","Packets","Attack Prob.","Prediction"] if x in table.columns]
+            table = table.rename(columns={"source_ip":"Source IP","destination_ip":"Destination IP"})
+            st.dataframe(table[show_cols], use_container_width=True, hide_index=True, height=285)
 
-        st.divider()
-
-        # ---------------------------------------------
-        # ATTACK EVENTS
-        # ---------------------------------------------
-
-        st.subheader("🚨 Detected Attack Events")
-
-        attack_df = df[
-            df["prediction"] == "ATTACK"
-        ].copy()
-
-        if not attack_df.empty:
-
-            display_columns = [
-                column for column in [
-                    "timestamp",
-                    "prediction",
-                    "attack_probability",
-                    "source_ip",
-                    "destination_ip",
-                    "destination_port",
-                    "protocol",
-                    "total_packets",
-                    "prediction_stage"
-                ]
-                if column in attack_df.columns
-            ]
-
-            st.dataframe(
-                attack_df[display_columns].sort_values(
-                    "timestamp",
-                    ascending=False
-                ) if "timestamp" in display_columns
-                else attack_df[display_columns],
-                use_container_width=True,
-                hide_index=True
-            )
-
-        else:
-
-            st.success(
-                "No ATTACK predictions have been recorded."
-            )
-
-        st.divider()
-
-        # ---------------------------------------------
-        # RECENT NETWORK EVENTS
-        # ---------------------------------------------
-
-        st.subheader("🌐 Recent Network Predictions")
-
-        recent_df = df.tail(50).copy()
-
-        display_columns = [
-            column for column in [
-                "timestamp",
-                "prediction",
-                "attack_probability",
-                "source_ip",
-                "destination_ip",
-                "destination_port",
-                "protocol",
-                "total_packets",
-                "prediction_stage"
-            ]
-            if column in recent_df.columns
-        ]
-
-        st.dataframe(
-            recent_df[display_columns].sort_values(
-                "timestamp",
-                ascending=False
-            ) if "timestamp" in display_columns
-            else recent_df[display_columns],
-            use_container_width=True,
-            hide_index=True
-        )
-
-        # ---------------------------------------------
-        # LAST EVENT
-        # ---------------------------------------------
-
-        if (
-            "timestamp" in df.columns
-            and df["timestamp"].notna().any()
-        ):
-
-            latest_time = df["timestamp"].max()
-
-            st.caption(
-                f"Last prediction event: {latest_time}"
-            )
+        with right:
+            st.markdown('<div class="ds-section-title">♟ &nbsp; Recent Alerts & Incidents</div>', unsafe_allow_html=True)
+            incidents = df[df["classification"] == "ATTACK"].copy()
+            if incidents.empty:
+                st.markdown(
+                    '<div class="ds-empty-alert"><div class="ds-check">✓</div>'
+                    '<b>No attack events detected.</b><p>All displayed events are currently classified as BENIGN by the model.</p></div>',
+                    unsafe_allow_html=True
+                )
+            else:
+                cols = [x for x in ["timestamp","source_ip","destination_ip","destination_port","protocol","attack_probability"] if x in incidents.columns]
+                st.dataframe(incidents[cols].sort_values("timestamp", ascending=False), use_container_width=True, hide_index=True, height=245)
+                st.error(f"{len(incidents):,} attack prediction events recorded. Investigate these model classifications.")
 
         st.caption(
-            "Note: These counts represent prediction events, "
-            "not necessarily unique network flows. A flow may "
-            "produce provisional and final predictions."
+            f"Live refresh: 2 seconds · {provisional:,} provisional and {final_count:,} final prediction events. "
+            "Counts are prediction events, not unique flows. Throughput and active-flow counts are not available from the current event schema."
         )
 
     live_soc_dashboard()
-
-    st.divider()
-
-    st.caption(
-        "DeepShield | Live SOC Monitoring | "
-        "Network Intrusion Detection"
-    )
-
     st.stop()
 
-# =====================================================
 # CSV TRAFFIC ANALYSIS
 # =====================================================
 
