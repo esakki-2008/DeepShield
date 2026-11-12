@@ -51,27 +51,23 @@ LIVE_EVENTS_FILE = (
 
 st.markdown("""
 <style>
-
-.stApp {
-    background: #0b1120;
-    color: #e5e7eb;
-}
-
-[data-testid="stMetric"] {
-    background: #151f32;
-    padding: 18px;
-    border-radius: 12px;
-    border: 1px solid #26344d;
-}
-
-h1, h2, h3 {
-    color: #60a5fa;
-}
-
-section[data-testid="stSidebar"] {
-    background: #111827;
-}
-
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+:root { --bg:#061326; --panel:#0b1c33; --line:#174a78; --cyan:#19c7f7; --blue:#238cff; --green:#00e58b; --red:#ff5268; --purple:#a66cff; --text:#e8f3ff; --muted:#91aac6; }
+html, body, [class*="css"] { font-family:'Inter',sans-serif; }
+.stApp { background:radial-gradient(ellipse at 50% -20%,rgba(0,139,255,.20),transparent 45%),linear-gradient(135deg,#061326 0%,#07152a 55%,#061020 100%); color:var(--text); }
+[data-testid="stHeader"] { background:rgba(5,15,29,.82); }
+[data-testid="stSidebar"] { background:linear-gradient(180deg,#08172b 0%,#061020 100%); border-right:1px solid #12385d; }
+[data-testid="stSidebar"] * { color:var(--text); }
+.block-container { padding-top:1.25rem; padding-bottom:2rem; max-width:1800px; }
+h1,h2,h3 { color:#f3f8ff !important; letter-spacing:-.03em; font-weight:800 !important; }
+[data-testid="stMetric"] { background:linear-gradient(145deg,rgba(13,39,68,.98),rgba(8,25,46,.98)); border:1px solid #18558a; border-radius:15px; padding:15px 17px; box-shadow:0 8px 24px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.04); min-height:112px; }
+[data-testid="stMetricLabel"] { color:#a9c3df !important; font-weight:600; }
+[data-testid="stMetricValue"] { color:#f4f9ff !important; font-weight:800; }
+div[data-testid="stPlotlyChart"] { background:linear-gradient(145deg,rgba(9,28,51,.95),rgba(7,21,39,.95)); border:1px solid #164b79; border-radius:16px; padding:8px; }
+div[data-testid="stDataFrame"] { border:1px solid #164b79; border-radius:13px; overflow:hidden; }
+.stButton>button,.stDownloadButton>button { border-radius:10px; border:1px solid #168dd0; background:linear-gradient(90deg,#087cc5,#1555b8); color:white; font-weight:700; }
+hr { border-color:#173d63 !important; }
+[data-testid="stCaptionContainer"] { color:#91aac6 !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -132,14 +128,14 @@ def load_live_events():
             errors="coerce"
         ).fillna(0)
 
-    if "prediction" not in df.columns:
+    if "classification" in df.columns:
+        df["prediction"] = (
+            df["classification"].astype(str).str.strip().str.upper()
+        )
+    elif "prediction" not in df.columns:
         df["prediction"] = "UNKNOWN"
-
-    df["prediction"] = (
-        df["prediction"]
-        .astype(str)
-        .str.upper()
-    )
+    else:
+        df["prediction"] = df["prediction"].astype(str).str.strip().str.upper()
 
     return df
 
@@ -612,11 +608,17 @@ st.sidebar.caption(
 
 if dashboard_mode == "Live SOC Monitoring":
 
-    st.header("🖥️ Live Security Operations Center")
-
-    st.caption(
-        "Real-time network-flow predictions from your "
-        "DeepShield packet capture engine."
+    st.markdown(
+        """
+        <div style="padding:18px 20px;border:1px solid #174a78;border-radius:16px;
+                    background:linear-gradient(110deg,rgba(9,34,62,.96),rgba(7,22,42,.94));">
+          <div style="font-size:12px;color:#55cfff;font-weight:700;letter-spacing:2px;">DEEPSHIELD / LIVE DEFENSE</div>
+          <div style="font-size:27px;font-weight:800;color:#f2f8ff;margin-top:3px;">Security Operations Center</div>
+          <div style="font-size:13px;color:#9eb8d4;margin-top:4px;">Real-time network-flow analysis, threat detection and event intelligence</div>
+          <div style="margin-top:12px;color:#4fffb3;font-size:12px;font-weight:700;">● LIVE SOC &nbsp;&nbsp; | &nbsp;&nbsp; MODEL · XGBOOST &nbsp;&nbsp; | &nbsp;&nbsp; AUTO REFRESH · 2s</div>
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
     st.info(
@@ -660,27 +662,21 @@ if dashboard_mode == "Live SOC Monitoring":
 
         st.subheader("📊 Live Traffic Overview")
 
-        col1, col2, col3, col4 = st.columns(4)
+        provisional_count = int(
+            (df["prediction_stage"].astype(str).str.upper() == "PROVISIONAL").sum()
+        ) if "prediction_stage" in df.columns else 0
 
-        col1.metric(
-            "Total Events",
-            f"{stats['total_events']:,}"
-        )
+        final_count = int(
+            (df["prediction_stage"].astype(str).str.upper() == "FINAL").sum()
+        ) if "prediction_stage" in df.columns else 0
 
-        col2.metric(
-            "Benign Events",
-            f"{stats['benign_events']:,}"
-        )
-
-        col3.metric(
-            "Attack Events",
-            f"{stats['attack_events']:,}"
-        )
-
-        col4.metric(
-            "Attack Percentage",
-            f"{stats['attack_percentage']:.2f}%"
-        )
+        metric_cols = st.columns(6)
+        metric_cols[0].metric("Total Events", f"{stats['total_events']:,}")
+        metric_cols[1].metric("Benign Traffic", f"{stats['benign_events']:,}")
+        metric_cols[2].metric("Attack Traffic", f"{stats['attack_events']:,}")
+        metric_cols[3].metric("Avg Attack Probability", f"{stats['average_attack_probability'] * 100:.2f}%")
+        metric_cols[4].metric("Provisional", f"{provisional_count:,}")
+        metric_cols[5].metric("Final Predictions", f"{final_count:,}")
 
         st.divider()
 
