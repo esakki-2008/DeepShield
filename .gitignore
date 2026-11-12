@@ -1,11 +1,30 @@
+
+# Python environment
 .venv/
+venv/
 __pycache__/
 .pytest_cache/
-*.pyc
-.env
+*.py[cod]
 
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Datasets
 data/raw/
 data/processed/
 
+# Generated reports and live alerts
+reports/live_alerts/
+reports/*.csv
+reports/*.jsonl
+
+# External installers
+*.exe
+
+# IDE and operating system files
+.vscode/
+.idea/
 .DS_Store
 Thumbs.db
