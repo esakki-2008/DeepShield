@@ -1173,28 +1173,217 @@ elif dashboard_mode == "Analytics":
 elif dashboard_mode == "Models & Performance":
 
     st.title("🧠 Models & Performance")
-    st.caption("Model artifacts and evaluation results available in this project.")
+    st.caption(
+        "Measured evaluation results, model availability and feature importance "
+        "from the reports saved with this project."
+    )
+
     model_dir = BASE_DIR.parent / "models"
     model_files = [
-        model_dir / "binary_xgboost.joblib",
-        model_dir / "multiclass_xgboost.joblib",
-        model_dir / "calibrated_hybrid_detector.joblib"
+        ("Binary XGBoost", "binary_xgboost.joblib"),
+        ("Multiclass XGBoost", "multiclass_xgboost.joblib"),
+        ("Calibrated Hybrid Detector", "calibrated_hybrid_detector.joblib")
     ]
-    for model_file in model_files:
-        if model_file.exists():
-            st.success(f"{model_file.name} — file found")
+
+    st.subheader("Model artifacts")
+    model_columns = st.columns(3)
+    for column, (label, filename) in zip(model_columns, model_files):
+        if (model_dir / filename).exists():
+            column.success(f"{label}\n\nAvailable")
         else:
-            st.warning(f"{model_file.name} — file not found locally")
-    st.info(
-        "For measured evaluation metrics, consult the saved reports under "
-        "reports/. This page does not invent performance figures or infer "
-        "metrics from model file presence."
-    )
+            column.warning(f"{label}\n\nNot found locally")
+
     report_dir = BASE_DIR.parent / "reports"
-    report_files = sorted(report_dir.glob("*.csv")) if report_dir.exists() else []
-    if report_files:
-        st.subheader("Available evaluation reports")
-        st.write([path.name for path in report_files])
+
+    def read_evaluation_report(filename):
+        path = report_dir / filename
+        if not path.exists():
+            return None
+        try:
+            return pd.read_csv(path)
+        except (OSError, pd.errors.ParserError, UnicodeDecodeError) as error:
+            st.warning(f"Could not read {filename}: {error}")
+            return None
+
+    calibrated_df = read_evaluation_report("calibrated_anomaly_results.csv")
+    ablation_df = read_evaluation_report("feature_ablation_results.csv")
+    hybrid_df = read_evaluation_report("hybrid_evaluation.csv")
+    importance_df = read_evaluation_report("binary_feature_importance.csv")
+    ablation_importance_df = read_evaluation_report("ablation_feature_importance.csv")
+
+    st.divider()
+    st.subheader("Primary detector — held-out capture evaluation")
+
+    if calibrated_df is not None and not calibrated_df.empty:
+        primary_rows = calibrated_df[
+            calibrated_df["System"].astype(str).str.strip() == "Supervised XGBoost"
+        ]
+        if not primary_rows.empty:
+            primary = primary_rows.iloc[0]
+            metric_cols = st.columns(5)
+            metric_specs = [
+                ("Accuracy", "Accuracy"),
+                ("Precision", "Precision"),
+                ("Recall", "Recall"),
+                ("F1 score", "F1 Score"),
+                ("False positive rate", "False Positive Rate")
+            ]
+            for col, (label, field) in zip(metric_cols, metric_specs):
+                value = pd.to_numeric(pd.Series([primary[field]]), errors="coerce").iloc[0]
+                col.metric(label, f"{value:.2%}" if pd.notna(value) else "N/A")
+            st.caption(
+                "These figures come from the saved calibrated-anomaly evaluation: "
+                "the Friday DDoS capture was held out from training. They are dataset-specific "
+                "results, not a guarantee of performance on other networks."
+            )
+        else:
+            st.info("The saved calibrated evaluation does not contain a Supervised XGBoost row.")
+    else:
+        st.info("calibrated_anomaly_results.csv is not available; primary detector metrics cannot be displayed.")
+
+    st.divider()
+    st.subheader("Detector comparison")
+
+    if calibrated_df is not None and not calibrated_df.empty:
+        comparison = calibrated_df.copy()
+        metric_columns = ["Accuracy", "Precision", "Recall", "F1 Score", "False Positive Rate"]
+        for field in metric_columns:
+            if field in comparison.columns:
+                comparison[field] = pd.to_numeric(comparison[field], errors="coerce")
+        available_metrics = [field for field in metric_columns if field in comparison.columns]
+        if available_metrics:
+            display_comparison = comparison.copy()
+            for field in available_metrics:
+                display_comparison[field] = display_comparison[field].map(
+                    lambda value: f"{value:.2%}" if pd.notna(value) else "N/A"
+                )
+            st.dataframe(display_comparison, use_container_width=True, hide_index=True)
+
+            chart_metric = st.selectbox(
+                "Compare metric",
+                ["F1 Score", "Recall", "Precision", "Accuracy", "False Positive Rate"],
+                key="model_comparison_metric"
+            )
+            if chart_metric in comparison.columns:
+                chart = px.bar(
+                    comparison,
+                    x="System",
+                    y=chart_metric,
+                    title=f"{chart_metric} by detector",
+                    text=comparison[chart_metric].map(
+                        lambda value: f"{value:.1%}" if pd.notna(value) else ""
+                    )
+                )
+                chart.update_layout(
+                    template="plotly_dark",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    yaxis=dict(tickformat=".0%", range=[0, 1])
+                )
+                st.plotly_chart(chart, use_container_width=True)
+    else:
+        st.info("No detector comparison table is available.")
+
+    st.warning(
+        "The calibrated Isolation Forest and hybrid results are shown separately. "
+        "The Isolation Forest's 1% calibration false-positive target was measured on its "
+        "benign calibration sample; its false-positive rate on the held-out Friday capture "
+        "is different. The hybrid OR rule increases false positives, so XGBoost remains "
+        "the primary supervised detector."
+    )
+
+    st.divider()
+    st.subheader("Feature ablation — held-out capture")
+
+    if ablation_df is not None and not ablation_df.empty:
+        ablation_display = ablation_df.copy()
+        percent_fields = ["Accuracy", "Precision", "Recall", "F1 Score", "ROC AUC"]
+        for field in percent_fields:
+            if field in ablation_display.columns:
+                ablation_display[field] = pd.to_numeric(
+                    ablation_display[field], errors="coerce"
+                ).map(lambda value: f"{value:.2%}" if pd.notna(value) else "N/A")
+        st.dataframe(ablation_display, use_container_width=True, hide_index=True)
+        st.caption(
+            "Removing the four most important features produced only a small change "
+            "in this held-out experiment; feature reduction did not solve the "
+            "generalization gap."
+        )
+    else:
+        st.info("feature_ablation_results.csv is not available.")
+
+    st.divider()
+    st.subheader("Top binary-model features")
+
+    if importance_df is not None and not importance_df.empty:
+        importance_df["Importance"] = pd.to_numeric(
+            importance_df["Importance"], errors="coerce"
+        )
+        top_features = importance_df.dropna(
+            subset=["Importance"]
+        ).nlargest(15, "Importance").sort_values("Importance")
+        feature_chart = px.bar(
+            top_features,
+            x="Importance",
+            y="Feature",
+            orientation="h",
+            title="Top 15 features by saved model importance"
+        )
+        feature_chart.update_layout(
+            template="plotly_dark",
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            yaxis_title=""
+        )
+        st.plotly_chart(feature_chart, use_container_width=True)
+        with st.expander("View complete feature-importance table"):
+            st.dataframe(
+                importance_df.sort_values("Importance", ascending=False),
+                use_container_width=True,
+                hide_index=True
+            )
+    else:
+        st.info("binary_feature_importance.csv is not available.")
+
+    if ablation_importance_df is not None and not ablation_importance_df.empty:
+        with st.expander("View feature importance from ablation experiment"):
+            st.dataframe(
+                ablation_importance_df,
+                use_container_width=True,
+                hide_index=True
+            )
+
+    st.divider()
+    st.subheader("Download evaluation reports")
+    downloadable_reports = [
+        "calibrated_anomaly_results.csv",
+        "hybrid_evaluation.csv",
+        "feature_ablation_results.csv",
+        "binary_feature_importance.csv",
+        "ablation_feature_importance.csv"
+    ]
+    download_columns = st.columns(2)
+    for index, filename in enumerate(downloadable_reports):
+        path = report_dir / filename
+        if path.exists():
+            try:
+                download_columns[index % 2].download_button(
+                    label=f"⬇️ {filename}",
+                    data=path.read_bytes(),
+                    file_name=filename,
+                    mime="text/csv",
+                    key=f"download_{filename}",
+                    use_container_width=True
+                )
+            except OSError as error:
+                st.warning(f"Could not prepare {filename}: {error}")
+
+    st.info(
+        "Confusion-matrix counts and multiclass per-class metrics are not included "
+        "in the CSV reports currently available to this page, so they are not displayed. "
+        "Random-split validation scores are intentionally not presented as unseen-network "
+        "performance."
+    )
 
 # SETTINGS
 # =====================================================
