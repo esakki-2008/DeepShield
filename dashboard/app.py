@@ -108,6 +108,37 @@ hr{border-color:#17436d!important;}
 .ds-empty-alert b{font-size:16px;color:#f3f8ff;}
 .ds-empty-alert p{font-size:12px;color:#a9bfd8;margin:8px 0 0;}
 @media(max-width:900px){.ds-kpi{padding-left:48px;}.ds-kpi-icon{left:10px;font-size:22px;}.ds-statuses{gap:5px;}}
+
+/* Reference layout refinements: wider navigation, stronger typography and roomier panels */
+section[data-testid="stSidebar"]{width:238px!important;min-width:238px!important;}
+section[data-testid="stSidebar"] [data-testid="stSidebarContent"]{padding-top:1rem!important;}
+section[data-testid="stSidebar"] [role="radiogroup"] label{font-size:14px!important;padding:9px 7px!important;}
+.ds-topbar{padding:15px 20px!important;min-height:76px!important;}
+.ds-brand-name{font-size:27px!important;}
+.ds-brand-sub{font-size:13px!important;}
+.ds-top-status,.ds-chip,.ds-status{font-size:14px!important;padding:10px 16px!important;}
+.ds-heading{padding:15px 5px 20px!important;}
+.ds-heading h1{font-size:clamp(27px,2.3vw,36px)!important;}
+.ds-heading p{font-size:15px!important;}
+.ds-kpi{min-height:132px!important;padding:17px 14px 14px 66px!important;}
+.ds-kpi-icon{font-size:32px!important;left:17px!important;top:21px!important;}
+.ds-kpi-label{font-size:13px!important;min-height:32px!important;}
+.ds-kpi-value{font-size:clamp(23px,1.9vw,31px)!important;}
+.ds-kpi-foot{font-size:12px!important;}
+.ds-section-title{font-size:19px!important;padding:14px 3px 8px!important;}
+.ds-legend-row,.ds-bar-label{font-size:13px!important;}
+.ds-bar-track{height:16px!important;}
+.ds-empty-alert{min-height:285px!important;}
+.ds-empty-alert b{font-size:18px!important;}
+.ds-empty-alert p{font-size:14px!important;}
+div[data-testid="stPlotlyChart"]{padding:10px!important;}
+[data-testid="stDataFrame"]{font-size:13px!important;}
+@media(max-width:900px){
+ section[data-testid="stSidebar"]{width:205px!important;min-width:205px!important;}
+ .ds-kpi{min-height:112px!important;padding-left:52px!important;}
+ .ds-kpi-icon{left:12px!important;font-size:24px!important;}
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -587,17 +618,7 @@ def generate_pdf_report(result, predictions_df):
 # HEADER
 # =====================================================
 
-st.markdown(
-    """
-    <div class="ds-app-title">
-      <span class="ds-app-mark">⬡</span>
-      <div><b>DeepShield</b><small>AI-Powered Network Intrusion Detection & Threat Analytics</small></div>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-st.divider()
+# The Live SOC view renders its own single reference-style brand header.
 
 
 # SIDEBAR
