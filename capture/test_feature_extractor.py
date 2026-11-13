@@ -3,7 +3,10 @@ import math
 import joblib
 from pathlib import Path
 
-from feature_extractor import extract_features
+try:
+    from .feature_extractor import extract_features
+except ImportError:
+    from feature_extractor import extract_features
 
 
 MODEL_PATH = Path("models/binary_xgboost.joblib")
@@ -123,6 +126,10 @@ def main():
         print(f"{name}: {result[name]}")
 
     print("\nALL VALIDATION CHECKS PASSED")
+
+
+def test_feature_extractor():
+    main()
 
 
 if __name__ == "__main__":

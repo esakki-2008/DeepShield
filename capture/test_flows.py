@@ -1,6 +1,9 @@
 
 from scapy.all import sniff, conf
-from flow_generator import FlowGenerator
+try:
+    from .flow_generator import FlowGenerator
+except ImportError:
+    from flow_generator import FlowGenerator
 
 
 INTERFACE_INDEX = 15

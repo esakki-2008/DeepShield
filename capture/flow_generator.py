@@ -184,7 +184,10 @@ class FlowGenerator:
                         flow["forward_data_packets"] += 1
 
                     if flow["min_segment_size_forward"] == -1:
-                        flow["min_segment_size_forward"] = (
+                        flow["min_segment_size_forward"] = combined_header_length
+                    else:
+                        flow["min_segment_size_forward"] = min(
+                            flow["min_segment_size_forward"],
                             combined_header_length
                         )
 
