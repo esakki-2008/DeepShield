@@ -1,35 +1,50 @@
 
+import numpy as np
 import pandas as pd
-from pathlib import Path
 
-from preprocessing import clean_features
+from src.preprocessing import clean_features
 
-file = Path(
-    "data/raw/Thursday-WorkingHours-Morning-WebAttacks.pcap_ISCX.csv"
-)
 
-print("Loading dataset...")
+def test_clean_features_strips_column_names():
+    df = pd.DataFrame({" Flow Bytes/s ": [100.0]})
 
-df = pd.read_csv(file, nrows=20000)
+    cleaned = clean_features(df)
 
-print("\nOriginal shape:", df.shape)
+    assert "Flow Bytes/s" in cleaned.columns
 
-cleaned = clean_features(df)
 
-print("Cleaned shape:", cleaned.shape)
+def test_clean_features_replaces_infinity():
+    df = pd.DataFrame({
+        "value": [100.0, np.inf, -np.inf]
+    })
 
-print("\nColumn names:")
-print(cleaned.columns.tolist()[:5])
+    cleaned = clean_features(df)
 
-print("\nAttack label counts:")
-print(cleaned["Label"].value_counts())
+    assert cleaned["value"].iloc[0] == 100.0
+    assert cleaned["value"].isna().sum() == 2
 
-print("\nMissing values:", cleaned.isnull().sum().sum())
 
-print(
-    "\nInfinite values:",
-    cleaned.select_dtypes(include="number")
-    .isin([float("inf"), float("-inf")]).sum().sum()
-)
+def test_clean_features_normalizes_attack_labels():
+    df = pd.DataFrame({
+        "Label": [
+            "BENIGN",
+            "Web Attack ï¿½ XSS"
+        ]
+    })
 
-print("\nPreprocessing test completed!")
+    cleaned = clean_features(df)
+
+    assert cleaned["Label"].iloc[0] == "BENIGN"
+    assert cleaned["Label"].iloc[1] == "Web Attack - XSS"
+
+
+def test_clean_features_preserves_original_dataframe():
+    df = pd.DataFrame({
+        " Flow Bytes/s ": [100.0, np.inf]
+    })
+
+    original = df.copy(deep=True)
+
+    clean_features(df)
+
+    pd.testing.assert_frame_equal(df, original)
