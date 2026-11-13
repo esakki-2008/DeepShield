@@ -287,8 +287,7 @@ Some tests require the trained model artifacts and/or Scapy dependencies to be i
 
 Explore the DeepShield dashboard, network monitoring, threat detection, model evaluation, and reporting interface.
 
-<details>
-<summary><b>View all 18 screenshots</b></summary>
+
 
 ### Screenshot 1
 ![Screenshot 1](docs/screenshots/Screenshot%202026-11-13%20170243.png)
@@ -344,7 +343,7 @@ Explore the DeepShield dashboard, network monitoring, threat detection, model ev
 ### Screenshot 18
 ![Screenshot 18](docs/screenshots/Screenshot%202026-11-13%20214954.png)
 
-</details>
+
 
 ## 🔐 Responsible use and limitations
 
