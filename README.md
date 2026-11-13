@@ -283,6 +283,69 @@ Some tests require the trained model artifacts and/or Scapy dependencies to be i
 
 ---
 
+## 📸 DeepShield – Project Screenshots
+
+Explore the DeepShield dashboard, network monitoring, threat detection, model evaluation, and reporting interface.
+
+<details>
+<summary><b>View all 18 screenshots</b></summary>
+
+### Screenshot 1
+![Screenshot 1](docs/screenshots/Screenshot%202026-11-13%20170243.png)
+
+### Screenshot 2
+![Screenshot 2](docs/screenshots/Screenshot%202026-11-13%20170251.png)
+
+### Screenshot 3
+![Screenshot 3](docs/screenshots/Screenshot%202026-11-13%20170303.png)
+
+### Screenshot 4
+![Screenshot 4](docs/screenshots/Screenshot%202026-11-13%20180427.png)
+
+### Screenshot 5
+![Screenshot 5](docs/screenshots/Screenshot%202026-11-13%20214523.png)
+
+### Screenshot 6
+![Screenshot 6](docs/screenshots/Screenshot%202026-11-13%20214547.png)
+
+### Screenshot 7
+![Screenshot 7](docs/screenshots/Screenshot%202026-11-13%20214608.png)
+
+### Screenshot 8
+![Screenshot 8](docs/screenshots/Screenshot%202026-11-13%20214638.png)
+
+### Screenshot 9
+![Screenshot 9](docs/screenshots/Screenshot%202026-11-13%20214705.png)
+
+### Screenshot 10
+![Screenshot 10](docs/screenshots/Screenshot%202026-11-13%20214725.png)
+
+### Screenshot 11
+![Screenshot 11](docs/screenshots/Screenshot%202026-11-13%20214738.png)
+
+### Screenshot 12
+![Screenshot 12](docs/screenshots/Screenshot%202026-11-13%20214751.png)
+
+### Screenshot 13
+![Screenshot 13](docs/screenshots/Screenshot%202026-11-13%20214804.png)
+
+### Screenshot 14
+![Screenshot 14](docs/screenshots/Screenshot%202026-11-13%20214850.png)
+
+### Screenshot 15
+![Screenshot 15](docs/screenshots/Screenshot%202026-11-13%20214908.png)
+
+### Screenshot 16
+![Screenshot 16](docs/screenshots/Screenshot%202026-11-13%20214921.png)
+
+### Screenshot 17
+![Screenshot 17](docs/screenshots/Screenshot%202026-11-13%20214941.png)
+
+### Screenshot 18
+![Screenshot 18](docs/screenshots/Screenshot%202026-11-13%20214954.png)
+
+</details>
+
 ## 🔐 Responsible use and limitations
 
 - Only capture traffic on networks and devices for which you have explicit authorization.
