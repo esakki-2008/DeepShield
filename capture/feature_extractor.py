@@ -209,14 +209,26 @@ def extract_features(flow, feature_names):
         "Idle Min": safe_min(idle),
     }
 
+    # Fail loudly if the model asks for a feature we do not calculate.
+    # Silently substituting zero can create misleading live predictions.
+    missing_features = [name for name in feature_names if name not in features]
+    if missing_features:
+        raise ValueError(
+            "Feature extractor does not calculate required model features: "
+            + ", ".join(missing_features)
+        )
+
+    if len(set(feature_names)) != len(feature_names):
+        raise ValueError("Model feature list contains duplicate feature names.")
+
     # Preserve the trained model's exact feature order.
     ordered = {}
-
     for name in feature_names:
-        value = features.get(name, 0.0)
+        value = features[name]
 
         if isinstance(value, (int, float, np.number)):
-            if math.isinf(float(value)):
+            value = float(value)
+            if math.isinf(value):
                 value = np.nan
 
         ordered[name] = value
