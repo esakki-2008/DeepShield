@@ -90,6 +90,25 @@ def main():
 
     print("Basic calculations: PASS")
 
+    # Check 5: Unsupported model features must never silently become zero.
+    try:
+        extract_features(test_flow, feature_names + ["Unsupported Feature"])
+    except ValueError as error:
+        assert "Unsupported Feature" in str(error)
+        print("Unsupported feature guard: PASS")
+    else:
+        raise AssertionError("Unsupported feature was not rejected.")
+
+    # Check 6: Undefined rates for a zero-duration flow remain NaN.
+    zero_duration_flow = dict(test_flow)
+    zero_duration_flow["packet_times"] = [1.0, 1.0]
+    zero_duration_flow["forward_times"] = [1.0, 1.0]
+    zero_duration_flow["backward_times"] = []
+    zero_duration_result = extract_features(zero_duration_flow, feature_names)
+    assert math.isnan(float(zero_duration_result["Flow Bytes/s"]))
+    assert math.isnan(float(zero_duration_result["Flow Packets/s"]))
+    print("Zero-duration rate handling: PASS")
+
     print("\nSelected feature values:")
     for name in [
         "Destination Port",
