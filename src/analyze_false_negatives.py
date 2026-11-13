@@ -151,14 +151,18 @@ def main():
 
     false_negatives = result[result["error_type"] == "FALSE_NEGATIVE"].copy()
     false_positives = result[result["error_type"] == "FALSE_POSITIVE"].copy()
+    true_positives = result[result["error_type"] == "CORRECT"].copy()
+    true_positives = true_positives[true_positives["true_label"] == "ATTACK"].copy()
 
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
     fn_path = REPORT_DIR / "heldout_false_negatives.csv"
     fp_path = REPORT_DIR / "heldout_false_positives.csv"
+    tp_path = REPORT_DIR / "heldout_true_positives.csv"
     summary_path = REPORT_DIR / "heldout_error_summary.csv"
 
     false_negatives.sort_values("attack_probability").to_csv(fn_path, index=False)
     false_positives.sort_values("attack_probability", ascending=False).to_csv(fp_path, index=False)
+    true_positives.sort_values("attack_probability", ascending=False).to_csv(tp_path, index=False)
 
     probability_bins = pd.cut(
         false_negatives["attack_probability"],
@@ -174,11 +178,13 @@ def main():
 
     print("\nFALSE NEGATIVE COUNT:", len(false_negatives))
     print("FALSE POSITIVE COUNT:", len(false_positives))
+    print("TRUE POSITIVE COUNT:", len(true_positives))
     print("\nFalse-negative probability distribution:")
     print(bin_summary.to_string(index=False))
     print("\nSaved reports:")
     print(fn_path)
     print(fp_path)
+    print(tp_path)
     print(summary_path)
     print("\nFALSE NEGATIVE ANALYSIS COMPLETE.")
 
