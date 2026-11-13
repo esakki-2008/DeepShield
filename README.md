@@ -1,187 +1,94 @@
 # 🛡️ DeepShield
-### Intelligent Network Intrusion Detection & Threat Analytics Platform
 
-DeepShield is an AI-powered network intrusion detection and threat analytics platform that analyzes network-flow records, identifies suspicious traffic, classifies attack families, and provides anomaly detection and risk assessment.
+### AI-Powered Network Intrusion Detection & Threat Analytics Platform
 
-It combines machine learning, explainable AI, a REST API, and an interactive security dashboard.
+DeepShield is a machine-learning-based network intrusion detection and threat analytics project. It analyzes network-flow records, classifies traffic, surfaces anomaly signals, explains selected model predictions, and presents monitoring results through a Security Operations Center (SOC) dashboard.
 
-## 🚀 Key Features
+The platform supports **two analysis modes**:
 
-- **Binary Intrusion Detection:** Classifies network traffic as BENIGN or ATTACK.
-- **Multiclass Classification:** Identifies 15 traffic categories, including DDoS, PortScan, Bot, and DoS attacks.
-- **Anomaly Detection:** Uses Isolation Forest to identify unusual traffic patterns.
-- **Explainable AI:** Uses SHAP to investigate model predictions.
-- **Threat Intelligence:** Provides preliminary risk scores and severity levels.
-- **Interactive Dashboard:** Visualizes traffic distribution, attack families, anomalies, and threat alerts.
-- **REST API:** Provides network-flow analysis through FastAPI.
-- **Automated Reports:** Exports prediction results as PDF and CSV.
-- **Automated Testing:** Includes API integration tests using pytest.
+- **Live SOC Monitoring:** captures authorized IPv4 TCP/UDP traffic from a selected local network interface, builds bidirectional flows, generates provisional and final predictions, and streams events to the dashboard.
+- **CSV Traffic Analysis:** uploads historical network-flow CSV data for batch prediction, visualization, and report export.
 
-## 🧠 Machine Learning Models
+> **Research/portfolio project:** DeepShield is not a production-certified IDS. Its models were developed with CIC-IDS2017, and live feature extraction is an approximation of the training dataset's flow features. Validate carefully before using it for security decisions.
 
-| Component | Algorithm |
-|---|---|
-| Binary classification | XGBoost Classifier |
-| Multiclass classification | XGBoost Classifier |
-| Anomaly detection | Isolation Forest |
-| Explainability | SHAP |
+---
+
+## ✨ Features
+
+### Live SOC Monitoring
+- Local packet capture using Scapy.
+- Bidirectional TCP/UDP flow aggregation.
+- Configurable flow timeouts and maximum flow lifetime.
+- Provisional predictions while flows are active.
+- Final predictions when eligible flows expire.
+- JSONL event persistence for dashboard updates.
+- Potential-threat alerts with triage severity labels.
+- Live dashboard refresh with traffic and prediction summaries.
+
+### CSV Traffic Analysis
+- Upload network-flow CSV files with the expected 78 numeric model features.
+- Binary classification: `BENIGN` or `ATTACK`.
+- Multiclass attack-family classification for records classified as attacks.
+- Isolation Forest anomaly signal.
+- Traffic summaries, charts, and downloadable CSV/PDF reports.
+
+### Explainability and evaluation
+- SHAP-based feature explanations.
+- Binary and multiclass model evaluation.
+- Held-out capture experiments to examine generalization.
+- False-negative, feature-ablation, and anomaly-calibration analysis.
+
+---
+
+## 🧠 Models
+
+| Component | Method | Purpose |
+|---|---|---|
+| Binary IDS | XGBoost Classifier | BENIGN vs ATTACK |
+| Attack-family classifier | XGBoost Classifier | Predicts one of the trained traffic labels |
+| Anomaly signal | Isolation Forest | Flags unusual feature patterns |
+| Explainability | SHAP | Explains selected model outputs |
+
+The supervised XGBoost binary classifier is the primary attack detector. Isolation Forest is presented as a separate anomaly signal; an anomaly flag is not proof of an attack. Threat severity is a preliminary triage heuristic, not a calibrated incident-severity measurement.
+
+---
 
 ## 📊 Dataset
 
-DeepShield uses the **CIC-IDS2017** dataset.
+DeepShield was developed using the **CIC-IDS2017** dataset.
 
-Dataset source: https://www.unb.ca/cic/datasets/ids-2017.html
+- Official dataset: https://www.unb.ca/cic/datasets/ids-2017.html
+- Approximately 2.83 million flow records across eight CSV files.
+- 78 numerical input features and a traffic label.
+- Includes benign traffic and multiple attack families.
 
-The project processes approximately 2.83 million network-flow records across eight CSV files, with 78 numerical input features and a traffic label.
+The raw and processed datasets are not included in this repository. Download the dataset from the official source and prepare it locally before training or running workflows that require the original data.
 
-The dataset contains benign traffic and multiple attack categories.
+---
 
-## 🏗️ Technology Stack
+## 📈 Model evaluation
 
-- **Language:** Python
-- **Machine Learning:** XGBoost, Scikit-learn
-- **Data Processing:** Pandas, NumPy, PyArrow
-- **Explainable AI:** SHAP
-- **Backend:** FastAPI
-- **Frontend:** Streamlit
-- **Visualization:** Plotly
-- **Reporting:** ReportLab
-- **Testing:** Pytest
+The following results come from different evaluation setups. They should not be interpreted as a single real-world accuracy estimate.
 
-## 📁 Project Structure
-
-```text
-DeepShield/
-│
-├── api/
-│   └── main.py
-│
-├── dashboard/
-│   └── app.py
-│
-├── data/
-│   ├── raw/
-│   └── processed/
-│
-├── models/
-│   ├── binary_xgboost.joblib
-│   ├── multiclass_xgboost.joblib
-│   └── calibrated_hybrid_detector.joblib
-│
-├── notebooks/
-│
-├── reports/
-│   └── figures/
-│
-├── src/
-│   ├── preprocessing.py
-│   ├── train_binary.py
-│   ├── train_multiclass.py
-│   ├── explainability.py
-│   ├── train_hybrid.py
-│   └── calibrate_anomaly.py
-│
-├── tests/
-│   └── test_api.py
-│
-├── requirements.txt
-├── README.md
-└── .gitignore
-```
-
-## ⚙️ Installation
-
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/YOUR_USERNAME/DeepShield.git
-cd DeepShield
-```
-
-### 2. Create a virtual environment
-
-```bash
-python -m venv .venv
-```
-
-### 3. Activate the environment
-
-Windows PowerShell:
-
-```powershell
-.\.venv\Scripts\Activate.ps1
-```
-
-### 4. Install dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### 5. Prepare the dataset and models
-
-Download CIC-IDS2017 from the official source.
-
-Follow the dataset preparation and model training scripts in `src/` to generate the processed data and model files.
-
-Place the generated model files in `models/`.
-
-## ▶️ Running DeepShield
-
-### Start the FastAPI backend
-
-```bash
-uvicorn api.main:app --reload
-```
-
-API documentation:
-
-http://127.0.0.1:8000/docs
-
-### Start the Streamlit dashboard
-
-Open another terminal:
-
-```bash
-streamlit run dashboard/app.py
-```
-
-Dashboard:
-
-http://localhost:8501
-
-Upload a supported CIC-IDS2017 network-flow CSV to analyze its traffic.
-
-## 🧪 Testing
-
-Run the API integration tests:
-
-```bash
-python -m pytest tests/test_api.py -v
-```
-
-The tests verify API availability, model health, and CSV prediction functionality.
-
-## 📈 Model Evaluation
-
-### Binary classification — random stratified test split
+### Binary model — random stratified test split
 
 | Metric | Result |
 |---|---:|
 | Accuracy | 99.88% |
 | ROC-AUC | 99.99% |
 
-### Binary classification — held-out DDoS capture
+### Binary model — held-out Friday DDoS capture
 
 | Metric | Result |
 |---|---:|
 | Accuracy | 78.72% |
 | Precision | 99.75% |
 | Recall | 63.08% |
-| F1 Score | 77.28% |
+| F1 score | 77.28% |
 | ROC-AUC | 91.70% |
+| False-positive rate | 0.21% |
 
-### Multiclass classification — random stratified validation
+### Multiclass model — random stratified validation
 
 | Metric | Result |
 |---|---:|
@@ -189,34 +96,222 @@ The tests verify API availability, model health, and CSV prediction functionalit
 | Macro F1 | 94.71% |
 | Weighted F1 | 99.30% |
 
-**Important:** Random-split performance is not representative of performance on unseen network environments. The held-out DDoS capture test provides a more challenging generalization assessment. Rare attack categories also have very limited examples.
+**Evaluation caveats**
+- Random-split results are optimistic compared with tests on an unseen capture.
+- Attack families are unevenly distributed across CIC-IDS2017 capture files. A family absent from training cannot be reliably identified by a closed-set classifier.
+- Some attack classes have very small validation support; their individual scores are not reliable estimates.
+- The held-out DDoS results show that the binary model misses a substantial share of attacks despite high precision.
+- Live monitoring events demonstrate that the capture-to-dashboard pipeline runs; they do not establish real-world detection accuracy. Observed local traffic during the recorded demo was classified as benign.
+- Live flow features are approximated from captured packets. They have not been validated for exact CICFlowMeter parity.
 
-## ⚠️ Limitations
+---
 
-- The current application analyzes uploaded network-flow CSV files; it does not capture live network packets.
-- The models are trained and evaluated using CIC-IDS2017, so performance may differ on real-world network traffic.
-- Some attack categories have very few training examples.
-- Anomaly flags are not equivalent to confirmed attacks.
-- Risk scores are preliminary heuristic indicators, not calibrated incident severity measurements.
-- The API requires the expected 78 numerical features.
+## 🏗️ Architecture
 
-## 🔮 Future Improvements
+```text
+                    ┌─────────────────────────┐
+                    │  Local authorized NIC   │
+                    └────────────┬────────────┘
+                                 │
+                         Scapy packet capture
+                                 │
+                         Bidirectional flows
+                                 │
+                         Feature extraction
+                                 │
+                         XGBoost prediction
+                                 │
+                    ┌────────────┴────────────┐
+                    │                         │
+              Alert manager             Event store
+                    │                         │
+                    └────────────┬────────────┘
+                                 │
+                         Streamlit SOC UI
 
-- Live packet capture and network monitoring.
-- Real-time intrusion detection.
-- Improved generalization to unseen attacks.
-- Advanced threat intelligence integration.
-- User authentication and role-based access.
-- Cloud deployment and scalable inference.
-- Enhanced alerting and incident investigation.
+
+Historical CSV ──> FastAPI /predict ──> ML models ──> Dashboard & reports
+```
+
+---
+
+## 🧰 Technology stack
+
+- **Language:** Python
+- **Machine learning:** XGBoost, scikit-learn
+- **Data processing:** Pandas, NumPy, PyArrow
+- **Explainable AI:** SHAP
+- **Packet capture:** Scapy (Windows capture typically requires Npcap)
+- **Backend:** FastAPI, Uvicorn
+- **Dashboard:** Streamlit
+- **Visualization:** Plotly
+- **Reporting:** ReportLab
+- **Testing:** Pytest
+
+---
+
+## 📁 Project structure
+
+```text
+DeepShield/
+├── api/
+│   └── main.py
+├── capture/
+│   ├── packet_capture.py
+│   ├── flow_generator.py
+│   ├── feature_extractor.py
+│   ├── live_predictor.py
+│   ├── live_detection_engine.py
+│   ├── alert_manager.py
+│   └── event_store.py
+├── dashboard/
+│   ├── app.py
+│   └── live_data.py
+├── data/
+│   ├── raw/                 # downloaded locally; not committed
+│   └── processed/           # generated locally; not committed
+├── models/                  # trained model artifacts
+├── reports/                 # generated locally; runtime logs ignored
+├── src/                     # preprocessing, training, evaluation
+├── tests/
+├── requirements.txt
+├── .gitignore
+└── README.md
+```
+
+---
+
+## ⚙️ Installation
+
+### 1. Clone the repository
+
+```powershell
+git clone https://github.com/esakki-2008/DeepShield.git
+cd DeepShield
+```
+
+### 2. Create and activate a virtual environment
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+If PowerShell blocks activation, use a terminal with an allowed script policy or activate the environment using your preferred Python shell.
+
+### 3. Install Python dependencies
+
+```powershell
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+### 4. Install packet-capture support (Windows, live mode)
+
+Install **Npcap** from https://npcap.com/ if it is not already installed. Packet capture may require running PowerShell as Administrator.
+
+The live engine currently selects a network interface using `INTERFACE_INDEX` in `capture/live_detection_engine.py`. Check and change that value to match the interface on your computer before starting capture.
+
+### 5. Prepare data and model artifacts
+
+1. Download CIC-IDS2017 from the official dataset page.
+2. Extract the CSV files into `data/raw/`.
+3. Run the relevant preprocessing and training scripts in `src/`.
+4. Ensure the model artifacts expected by the API and live predictor exist in `models/`.
+
+Model binaries and datasets may not be present in a fresh clone. They must be generated locally or obtained from a trusted project release.
+
+---
+
+## ▶️ Run DeepShield
+
+### Start the FastAPI backend
+
+From the project root:
+
+```powershell
+uvicorn api.main:app --reload
+```
+
+- API health: http://127.0.0.1:8000/health
+- Interactive API documentation: http://127.0.0.1:8000/docs
+
+### Start the Streamlit dashboard
+
+Open a second terminal, activate the same virtual environment, then run:
+
+```powershell
+streamlit run dashboard/app.py
+```
+
+Dashboard: http://localhost:8501
+
+### Start live network monitoring
+
+Use a third terminal. Only capture traffic on a device and network you own or are explicitly authorized to monitor.
+
+```powershell
+python capture/live_detection_engine.py
+```
+
+Stop monitoring with `Ctrl + C`.
+
+The live engine currently captures IPv4 traffic and builds TCP/UDP flows. It is not a full packet inspection system; IPv6 and other protocols are not handled by the current flow generator. The live feature extractor uses approximations for some flow statistics, so live predictions should be treated as experimental.
+
+### Analyze a CSV file
+
+Select **CSV Traffic Analysis** in the dashboard and upload a compatible network-flow CSV containing the expected 78 numeric feature columns. The API enforces an upload limit; consult `api/main.py` for the current configured limit.
+
+---
+
+## 🧪 Tests
+
+Run the API integration tests:
+
+```powershell
+python -m pytest tests/test_api.py -v
+```
+
+Run the capture and feature validation scripts when available:
+
+```powershell
+python capture/test_flows.py
+python capture/test_feature_extractor.py
+```
+
+Some tests require the trained model artifacts and/or Scapy dependencies to be installed.
+
+---
+
+## 🔐 Responsible use and limitations
+
+- Only capture traffic on networks and devices for which you have explicit authorization.
+- DeepShield is an educational/research portfolio project, not a replacement for a production IDS, firewall, SIEM, or incident-response process.
+- Models were trained on CIC-IDS2017. Network environments, traffic distributions, and attack techniques differ in practice.
+- The live feature extractor is approximate and has not been proven equivalent to CICFlowMeter.
+- A BENIGN prediction does not guarantee that traffic is safe. An ATTACK prediction is a model output that requires investigation.
+- Anomaly flags, heuristic risk scores, and alert severity labels are supporting triage signals, not confirmed incidents.
+- Do not use the dashboard's packet totals as network throughput: they aggregate packet counts attached to prediction events and can include repeated provisional snapshots of the same flow.
+
+---
+
+## 🔮 Future improvements
+
+- Configurable interface discovery and capture settings.
+- Validate live feature calculations against CICFlowMeter.
+- Improve generalization across unseen capture files and attack families.
+- Add stronger automated tests for live flow lifecycle and event consistency.
+- Improve event deduplication and distinguish flow-level metrics from prediction-event metrics.
+- Add authentication, access control, and deployment hardening.
+
+---
 
 ## 👨‍💻 Author
 
-**Esakki Raja Salaikumar**
+**Esakki Raja Salaikumar**  
+B.Sc. Information Technology | AI/ML & Cybersecurity
 
-B.Sc. Information Technology | AI/ML & Cybersecurity Enthusiast
-
-GitHub: https://github.com/YOUR_USERNAME
+GitHub: https://github.com/esakki-2008
 
 ---
 
