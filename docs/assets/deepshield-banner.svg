@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="420" viewBox="0 0 1600 420" role="img" aria-labelledby="title desc">
+  <title id="title">DeepShield — Intelligent Network Intrusion Detection and Threat Analytics Platform</title>
+  <desc id="desc">A dark navy cybersecurity banner with a cyan shield and connected network nodes.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#061326"/><stop offset=".55" stop-color="#09213c"/><stop offset="1" stop-color="#04101f"/></linearGradient>
+    <linearGradient id="cyan" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#61e8ff"/><stop offset="1" stop-color="#078bff"/></linearGradient>
+    <radialGradient id="glow"><stop offset="0" stop-color="#078bff" stop-opacity=".28"/><stop offset="1" stop-color="#078bff" stop-opacity="0"/></radialGradient>
+    <filter id="soft"><feGaussianBlur stdDeviation="18"/></filter>
+  </defs>
+  <rect width="1600" height="420" rx="28" fill="url(#bg)"/>
+  <ellipse cx="1260" cy="200" rx="420" ry="270" fill="url(#glow)"/>
+  <g opacity=".23" stroke="#19bfff" stroke-width="1.4" fill="none">
+    <path d="M920 60 1080 130 1210 55 1360 125 1510 65M880 260 1030 195 1160 290 1300 210 1460 285 1570 220"/>
+    <path d="M1080 130 1030 195M1210 55 1160 290M1360 125 1300 210M1510 65 1460 285"/>
+  </g>
+  <g fill="#35cfff">
+    <circle cx="920" cy="60" r="5"/><circle cx="1080" cy="130" r="6"/><circle cx="1210" cy="55" r="5"/><circle cx="1360" cy="125" r="6"/><circle cx="1510" cy="65" r="5"/><circle cx="880" cy="260" r="5"/><circle cx="1030" cy="195" r="5"/><circle cx="1160" cy="290" r="6"/><circle cx="1300" cy="210" r="5"/><circle cx="1460" cy="285" r="6"/><circle cx="1570" cy="220" r="5"/>
+  </g>
+  <g transform="translate(110 78)">
+    <path d="M100 0 184 34v84c0 73-43 123-84 148-41-25-84-75-84-148V34Z" fill="#0b3155" stroke="url(#cyan)" stroke-width="8"/>
+    <path d="M100 28 158 52v65c0 49-26 87-58 110-32-23-58-61-58-110V52Z" fill="#08213b" stroke="#1aaeff" stroke-opacity=".55" stroke-width="2"/>
+    <g stroke="#55e5ff" stroke-width="5" stroke-linecap="round" fill="none">
+      <path d="M70 120 100 88 132 118M100 88V55"/>
+    </g>
+    <g fill="#6deaff" stroke="#06213b" stroke-width="4"><circle cx="70" cy="120" r="10"/><circle cx="100" cy="55" r="10"/><circle cx="132" cy="118" r="10"/><circle cx="100" cy="88" r="9"/></g>
+  </g>
+  <g font-family="Inter,Segoe UI,Arial,sans-serif">
+    <text x="370" y="172" fill="#f4f9ff" font-size="92" font-weight="800" letter-spacing="-3">Deep<tspan fill="#35cfff">Shield</tspan></text>
+    <text x="376" y="232" fill="#d2e9ff" font-size="31" font-weight="600">Intelligent Network Intrusion Detection</text>
+    <text x="376" y="275" fill="#d2e9ff" font-size="31" font-weight="600">and Threat Analytics Platform</text>
+    <g transform="translate(380 340)" font-size="19" font-weight="600" fill="#a9cce8">
+      <circle cx="7" cy="-7" r="5" fill="#36d7ff"/><text x="24" y="0">LIVE NETWORK MONITORING</text>
+      <circle cx="360" cy="-7" r="5" fill="#36d7ff"/><text x="377" y="0">ML-BASED DETECTION</text>
+      <circle cx="670" cy="-7" r="5" fill="#36d7ff"/><text x="687" y="0">THREAT ANALYTICS</text>
+    </g>
+  </g>
+  <path d="M35 385H1565" stroke="#1a6da3" stroke-opacity=".45"/>
+</svg>
