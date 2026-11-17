@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/deepshield-banner.svg" alt="DeepShield — Intelligent Network Intrusion Detection and Threat Analytics Platform" width="100%">
+</p>
+
 # DeepShield
 
 ### Intelligent Network Intrusion Detection and Threat Analytics Platform
